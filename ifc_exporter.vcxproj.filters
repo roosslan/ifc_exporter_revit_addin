@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Addin">
+      <UniqueIdentifier>{5630b2d0-268f-4032-9c37-59e3abd840ff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{04097820-dea5-4f70-8a4a-5491bdc7792d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources">
+      <UniqueIdentifier>{7941720d-758c-48bd-817c-fa4f5176ab39}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="the_app.cc">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="ini_file.cc">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="start_export.cc">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="api_wrapper.cc">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="service_functions.cc">
+      <Filter>Sources</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="the_app.hpp">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="ini_file.hpp">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="start_export.hpp">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="api_wrapper.hpp">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.hpp">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="structures.hpp">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="sensitive_data.hpp">
+      <Filter>Headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="ifc_exporter.addin">
+      <Filter>Addin</Filter>
+    </None>
+    <None Include="app.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="ifc_exporter.rc" />
+  </ItemGroup>
+</Project>
