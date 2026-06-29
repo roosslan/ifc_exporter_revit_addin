@@ -6,8 +6,7 @@
 
 using namespace ifc_exporter;
 
-void ILog::info(const string text)
-{
+void ILog::info(const string text) {
     File::AppendAllText(CExport::vendor_directory + "\\ext_addin.dev.log", DateTime::Now.ToString("dd.MM.yyyy hh:mm tt") + text);
 }
 void ILog::error(const string text) {}
@@ -36,8 +35,8 @@ Assembly^ ext_app::delegate_assembly_resolve(object sender, ResolveEventArgs^ e)
     logger_->info("Fail resolving assembly " + file_path);
     if (System::IO::File::Exists(file_path))
         return Assembly::Load(file_path);
-    else
-        return nullptr;
+
+    return nullptr;
 }
 
 void ext_app::delegate_on_application_initialized(object sender, Autodesk::Revit::DB::Events::ApplicationInitializedEventArgs^ e) {
