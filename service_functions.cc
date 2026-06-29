@@ -40,7 +40,7 @@ namespace ifc_exporter {
         Export(export_to_entity);
     }
 
-    string CExport::get_location_to_export(string site_name) {
+    string CExport::get_location_to_export(const string site_name) {
         ProjectLocationSet^ locations = m_rvt_doc_->ProjectLocations;
         auto location_sites = gcnew cliext::vector<ProjectLocation^>;
 
@@ -89,7 +89,7 @@ namespace ifc_exporter {
     }
 
     void CExport::get_warn_dialog(object sender, DialogBoxShowingEventArgs^ e) {
-        string dial = e->DialogId;
+        const string dial = e->DialogId;
         if (dial == "TaskDialog_Unresolved_References") {
             e->OverrideResult(1);
         }
@@ -115,7 +115,7 @@ namespace ifc_exporter {
 
     export_to_file_format^ CExport::serialize_inf(List<views_n_sites^>^ files_to_processing) {
 
-        string ansi_default_dest_dir = m_ini_file_->read_string("DestinationDirs", "DefaultDestDir");
+        const string ansi_default_dest_dir = m_ini_file_->read_string("DestinationDirs", "DefaultDestDir");
 
         /* В отличие от других строк INF файла, в данном случае для GetPrivateProfileString может быть дана папка с русскими символами в имени */        
         /* После чтения из файла, ANSI в памяти сразу превращается в UTF16 (т.е. в Unicode) */
@@ -124,7 +124,7 @@ namespace ifc_exporter {
         auto default_dest_dir = Encoding::UTF8->GetString(windows1252_bytes);
 
         DateTime^ export_time = Convert::ToDateTime(m_ini_file_->read_string("ControlFlags", "Time"));
-        string revit_version = m_ini_file_->read_string("ControlFlags", "RevitVersion");
+        const string revit_version = m_ini_file_->read_string("ControlFlags", "RevitVersion");
 
         const bool ifc_is_on = Convert::ToBoolean(m_ini_file_->read_string("RVT", "IFC"));
         const bool nwc_is_on = Convert::ToBoolean(m_ini_file_->read_string("RVT", "NWC"));
@@ -139,13 +139,13 @@ namespace ifc_exporter {
         return ret_export_format;
     }
 
-    const bool CExport::str2bool(string bool_as_str) {
+    const bool CExport::str_to_bool(const string bool_as_str) {
         bool bret;
         std::istringstream(msclr::interop::marshal_as<std::string>(bool_as_str)) >> std::boolalpha >> bret;
         return bret;
     }
     export_to_file_format^ CExport::load_exports_config() {
-        string views_sites_file = File::ReadAllText(views_sites_file_path);
+        const string views_sites_file = File::ReadAllText(views_sites_file_path);
 
         auto v_files_to_process = gcnew List<views_n_sites^>;
 
@@ -157,7 +157,7 @@ namespace ifc_exporter {
             if (!sline->IsNullOrWhiteSpace((sline))) {
                 array<string>^ line_restore_to = sline->Split('=');
 
-                bool should_be_exported = str2bool(line_restore_to[5]->Trim());
+                bool should_be_exported = str_to_bool(line_restore_to[5]->Trim());
                 if (should_be_exported){                    
                     auto fn_3d_site_line = gcnew views_n_sites(line_restore_to[0]->Trim(), line_restore_to[1]->Trim(), line_restore_to[2]->Trim(), line_restore_to[3]->Trim(), line_restore_to[4]->Trim(), true);
                     v_files_to_process->Add(fn_3d_site_line);
@@ -166,7 +166,7 @@ namespace ifc_exporter {
                 line_restore_to->Clear;
             }
 
-        string sect_name = "SourceDisksFiles";
+        const string sect_name = "SourceDisksFiles";
         
         const string inf_file_path = vendor_directory + "\\ifcexprt.inf";
         const string inf_file = File::ReadAllText(inf_file_path);
@@ -190,7 +190,7 @@ namespace ifc_exporter {
                     /* removing ini-key's sign "=" at the end:  */
                     array<string>^ line_fpath_n_bool = line->Split('=');
                     auto source_disks_file_path = line_fpath_n_bool[0]->Trim();
-                    const bool file_should_be_exported = str2bool(line_fpath_n_bool[1]->Trim());
+                    const bool file_should_be_exported = str_to_bool(line_fpath_n_bool[1]->Trim());
 
                     int file_already_in_list = 1;
                     /* Добавляем в список обыкновенные RVT, без вьюх и площадок */
@@ -223,7 +223,7 @@ namespace ifc_exporter {
         return records_to_export;
     }
 
-    bool ifc_exporter::is_reserved_name(string filename) {
+    bool ifc_exporter::is_reserved_name(const string filename) {
         /* Windows reserved filenames */
         array<string>^ reserved_names = {
             "CON", "PRN", "AUX", "NUL",
@@ -231,9 +231,9 @@ namespace ifc_exporter {
             "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
         };
 
-        string name_without_ext = Path::GetFileNameWithoutExtension(filename);
+        const string name_without_ext = Path::GetFileNameWithoutExtension(filename);
 
-        for each (string reserved in reserved_names) {
+        for each (const string reserved in reserved_names) {
             if (name_without_ext->Equals(reserved, StringComparison::OrdinalIgnoreCase)) {
                 return true;
             }
@@ -267,7 +267,7 @@ namespace ifc_exporter {
         }
     }
 
-    string ifc_exporter::sanitize_filename(string filename) {
+    string ifc_exporter::sanitize_filename(const string filename) {
         if (String::IsNullOrEmpty(filename))
             return String::Empty;
 
@@ -289,7 +289,7 @@ namespace ifc_exporter {
         }
 
         // Additional Windows-specific restrictions
-        String^ result = sanitized->ToString();
+        string result = sanitized->ToString();
 
         // Remove leading/trailing spaces and dots (Windows restriction)
         result = result->Trim()->Trim('.');

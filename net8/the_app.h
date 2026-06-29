@@ -1,18 +1,25 @@
 ﻿#pragma once
 
-#include "stdafx.hpp"
-#include "ini_file.hpp"
-#include "sensitive_data.hpp"
+#include "stdafx.h"
+#include "sensitive_data.h"
+#include "ini_file.h"
 
 namespace ifc_exporter {
+    [Transaction(TransactionMode::Manual)]
+    public ref class ILog {
+    public:
+        void info(string text);        
+        void error(string text);
+    };
 
     public ref class ext_app : IExternalApplication {
+        static string assembly_location_;
+        static IExternalApplication^ external_application_;        
         ExternalEvent^ external_export_event_;
-        static ILog^ logger_ = LogManager::GetLogger("ifc_exporter");
+        static ILog^ logger_; /* = LogManager::GetLogger("ifc_exporter"); */
         static UIControlledApplication^ uic_application_;
         UIApplication^ ext_ui_application_;
-        void try_connect_to_exports_pipe_server(UIApplication^ uiapp);
-        Autodesk::Windows::RibbonButton^ create_revits_button(string btn_name, string btn_text, string btn_tool_tip, string img_path16, string img_path32, string id);
+        void try_connect_to_exports_pipe_server(UIApplication^ uiapp);        
         Assembly^ delegate_assembly_resolve(object sender, ResolveEventArgs^ e);
         void delegate_component_manager_ui_element_activated(object sender, UIElementActivatedEventArgs^ e);
         void delegate_on_application_initialized(object sender, ApplicationInitializedEventArgs^ e);
@@ -20,10 +27,7 @@ namespace ifc_exporter {
         void create_ribbon_buttons();
         void pipe_connect(object pipe_parameter);
         void pipe_handler(object pipe_parameter);
-        void on_export_button_click();
-        FileVersionInfo^ file_version_info_;
-        Assembly^ ext_dll_ = Assembly::GetExecutingAssembly();
-        string ext_version_ = nullptr;
+        void on_export_button_click();        
     public:
         ext_app();
         ini_simple^ ini_file = nullptr;

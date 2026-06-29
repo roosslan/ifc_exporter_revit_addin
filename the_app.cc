@@ -31,8 +31,8 @@ Assembly^ ext_app::delegate_assembly_resolve(object sender, ResolveEventArgs^ e)
      */
     if (System::IO::File::Exists(file_path))
         return Assembly::Load(file_path);
-    else
-        return nullptr;
+
+    return nullptr;
 }
 
 void ext_app::delegate_on_application_initialized(object sender, Autodesk::Revit::DB::Events::ApplicationInitializedEventArgs^ e) {
@@ -123,7 +123,7 @@ void ext_app::pipe_handler(object pipe_parameter) {
         auto str_writer = gcnew StreamWriter(pipe_client);
         str_writer->AutoFlush = true;
         
-        // При запуске проверяем, не выставила ли фоновая служба флаг приступать к экспорту:
+        /* При запуске проверяем, не выставила ли фоновая служба флаг приступать к экспорту: */
         if (ini_file->read_string("ControlFlags", "Enabled") != "false") {
             if (file_version_info_){
 	            ext_version_ = file_version_info_->FileVersion;
@@ -135,13 +135,13 @@ void ext_app::pipe_handler(object pipe_parameter) {
             ini_file->write_string("ControlFlags", "Enabled", "false");
 
             try {
-                // Оборачиваем весь код по экспорту в контекст Revit:
+                /* Оборачиваем весь код по экспорту в контекст Revit: */
                 external_export_event_->Raise();
             }
             catch (const std::exception& e) {
                 str_writer->Write(e.what());
 
-            } // str_writer->Write(L"End of export\n");
+            }
         }
     }
     else
@@ -149,26 +149,26 @@ void ext_app::pipe_handler(object pipe_parameter) {
 }
 
 void ext_app::try_connect_to_exports_pipe_server(UIApplication^ uiapp) {
+try {
+    auto pipe_client = gcnew NamedPipeClientStream(".", "\\bghelperpipe", PipeDirection::InOut);
     try {
-        auto pipe_client = gcnew NamedPipeClientStream(".", "\\bghelperpipe", PipeDirection::InOut);
-        try {
-            auto pipe_thread = gcnew Thread(gcnew ParameterizedThreadStart(this, &ext_app::pipe_connect));
-            logger_->Info("pipeThread->Start");
-            pipe_thread->Start(pipe_client);
+        auto pipe_thread = gcnew Thread(gcnew ParameterizedThreadStart(this, &ext_app::pipe_connect));
+        logger_->Info("pipe_thread->Start");
+        pipe_thread->Start(pipe_client);
 
-            auto conn_handler_thread = gcnew Thread(gcnew ParameterizedThreadStart(this, &ext_app::pipe_handler));
-            logger_->Info("connHandlerThread->Start");
-            conn_handler_thread->Start(pipe_client);
-        }
-        catch (TimeoutException^ e) {
-            logger_->Info("Received from server: " + e->ToString());
-        }  
-        
-        /* _logger->Info("_logger->Info(\"End of export?\")"); */
+        auto conn_handler_thread = gcnew Thread(gcnew ParameterizedThreadStart(this, &ext_app::pipe_handler));
+        logger_->Info("conn_handler_thread->Start");
+        conn_handler_thread->Start(pipe_client);
     }
-    catch (exception e) {
-        this->logger_->Error(e->ToString());
-    }
+    catch (TimeoutException^ e) {
+        logger_->Info("Received from server: " + e->ToString());
+    }  
+    
+    /* _logger->Info("_logger->Info(\"End of export?\")"); */
+}
+catch (exception e) {
+    this->logger_->Error(e->ToString());
+}
 }
 
 void ext_app::delegate_component_manager_ui_element_activated(object sender, UIElementActivatedEventArgs^ e) {
@@ -181,7 +181,7 @@ void ext_app::delegate_component_manager_ui_element_activated(object sender, UIE
 
 void ext_app::on_export_button_click() {
     const auto vendor_name = gcnew String(wvendor_name);
-    string export_to_exe_path = vendor_directory + "\\" + vendor_name + "\\ifc_exporter\\ifc_exporter.exe";
+    const string export_to_exe_path = vendor_directory + "\\" + vendor_name + "\\ifc_exporter\\ifc_exporter.exe";
 
     auto process = gcnew System::Diagnostics::Process();    
 
@@ -202,21 +202,19 @@ void ext_app::on_export_button_click() {
     }
 };
 
-Autodesk::Windows::RibbonButton^ ext_app::create_revits_button(string btn_name, string btn_text,
-		string btn_tool_tip,string img_path16, string img_path32, string id)
+Autodesk::Windows::RibbonButton^ ext_app::create_revits_button(const string btn_name, const string btn_text, const string btn_tool_tip,
+    const string img_path16, const string img_path32, const string id)
 {
-    ref::Assembly^ p_assembly;
-
-    auto revitsButton = gcnew Autodesk::Windows::RibbonButton();
+	auto revitsButton = gcnew Autodesk::Windows::RibbonButton();
     revitsButton->Name = btn_name;
 
-    p_assembly = ref::Assembly::GetExecutingAssembly();
+    ref::Assembly^ p_assembly = ref::Assembly::GetExecutingAssembly();
     Path^ addin_dir_path;
-    string pwd = addin_dir_path->GetDirectoryName(p_assembly->Location) + img_path32;
+    const string pwd = addin_dir_path->GetDirectoryName(p_assembly->Location) + img_path32;
     auto uri_image = gcnew Uri(pwd);
     auto large_image = gcnew img::BitmapImage(uri_image);
 
-    string small_upd_btn_path = addin_dir_path->GetDirectoryName(p_assembly->Location) + img_path16;
+    const string small_upd_btn_path = addin_dir_path->GetDirectoryName(p_assembly->Location) + img_path16;
     auto uri_upd_btn_small_img = gcnew Uri(small_upd_btn_path);
 	auto small_image = gcnew img::BitmapImage(uri_upd_btn_small_img);
 
@@ -241,12 +239,13 @@ Autodesk::Windows::RibbonButton^ ext_app::create_revits_button(string btn_name, 
     revitsButton->IsCheckable = true;
     revitsButton->Orientation = System::Windows::Controls::Orientation::Vertical;
     /*  revitsButton->KeyTip = "";
-        revitsButton->Width = revitsButton->Height; */
+     *  revitsButton->Width = revitsButton->Height;
+     */
     return revitsButton;
 }
 
 void ext_app::pipe_connect(object pipe_parameter) {
-    logger_->Info("extApp::pipe_connect: Connecting... ");
+    logger_->Info("ext_app::pipe_connect: Connecting... ");
     try {
         reinterpret_cast<NamedPipeClientStream^>(pipe_parameter)->Connect();
     }

@@ -1,47 +1,46 @@
 #include "ini_file.hpp"
 
 namespace ifc_exporter{
-        ini_simple::ini_simple(string ini_path) {
+        ini_simple::ini_simple(const string ini_path) {
             ext_path_ = (gcnew FileInfo(ini_path))->FullName; 
         }
 
-        array<string>^ ini_simple::read_section(string section) {
+        array<string>^ ini_simple::read_section(const string section) {
 	        constexpr int max_buffer = 32767;
-            array<string>^ ret_array;
-            IntPtr pReturnedString = Marshal::AllocCoTaskMem(static_cast<int>(max_buffer) * sizeof(char));
-            const int bytes_returned = GetPrivateProfileSectionW(section, pReturnedString, max_buffer, ext_path_);
+	        IntPtr p_returned_string = Marshal::AllocCoTaskMem(static_cast<int>(max_buffer) * sizeof(char));
+            const int bytes_returned = GetPrivateProfileSectionW(section, p_returned_string, max_buffer, ext_path_);
             if (bytes_returned == max_buffer - 2 || bytes_returned == 0) {
-                Marshal::FreeCoTaskMem(pReturnedString);
+                Marshal::FreeCoTaskMem(p_returned_string);
                 return nullptr;
             }
             /* NB: Calling Marshal::PtrToStringAuto(pReturnedString) will  result in only the first pair being returned  */
-            string returned_string = Marshal::PtrToStringAuto(pReturnedString, bytes_returned - 1);
+            const string returned_string = Marshal::PtrToStringAuto(p_returned_string, bytes_returned - 1);
 
-            ret_array = returned_string->Split('\0');
+            array<string>^ ret_array = returned_string->Split('\0');
 
-            Marshal::FreeCoTaskMem(pReturnedString);
+            Marshal::FreeCoTaskMem(p_returned_string);
             return ret_array;
         }
 
-        string ini_simple::read_string(string section, string key) {
+        string ini_simple::read_string(const string section, const string key) {
             auto ret_val = gcnew StringBuilder(255);
             GetPrivateProfileString(section, key, "", ret_val, 255, ext_path_);
             return ret_val->ToString();
         }
 
-        void ini_simple::write_string(string section, string key, string value) {
+        void ini_simple::write_string(const string section, const string key, const string value) {
             WritePrivateProfileString(section, key, value, ext_path_);
         }
 
-        void ini_simple::delete_key(string section, string key) {
+        void ini_simple::delete_key(const string section, const string key) {
             WritePrivateProfileString(section, key, nullptr, ext_path_);
         }
 
-        void ini_simple::delete_section(string section) {
+        void ini_simple::delete_section(const string section) {
             WritePrivateProfileString(section, nullptr, nullptr, ext_path_);
         }
 
-        bool ini_simple::key_exists(string section, string key) {
+        bool ini_simple::key_exists(const string section, const string key) {
             return read_string(section, key)->Length > 0;
         }
 }
