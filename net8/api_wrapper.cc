@@ -26,13 +26,13 @@ namespace ifc_exporter {
         /* File::AppendAllText("\\ext_addin.dev.log", DateTime::Now.ToString("dd.MM.yyyy hh:mm tt") + "apiWrapper::Execute ");  */
     }
 
-    void api_wrapper::task_run_async_in_context(UIApplication^ app){
+    void api_wrapper::task_run_async_in_context(UIApplication^ app) {
         auto ifcexporter = gcnew CExport(app);
     }
 
     /* virtual */
     string api_wrapper::GetName() {
-        /* throw gcnew System::NotImplementedException();   */
+        /* throw gcnew System::NotImplementedException(); */
         return ("External Event api_wrapper");
     }
 

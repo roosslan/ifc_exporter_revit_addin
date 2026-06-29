@@ -53,7 +53,7 @@ namespace ifc_exporter {
         return location_sites[0]->Name;
     }
 
-    nwc_export_options CExport::create_options_nwc(){
+    nwc_export_options CExport::create_options_nwc() {
         auto nwc_export_options = gcnew NavisworksExportOptions();
         nwc_export_options->ConvertElementProperties = true;
         nwc_export_options->Coordinates = NavisworksCoordinates::Shared;
@@ -67,7 +67,7 @@ namespace ifc_exporter {
         return nwc_export_options;
     }
 
-    IFCExportConfiguration^ CExport::create_config_ifc(){
+    IFCExportConfiguration^ CExport::create_config_ifc() {
         auto ifc_export_configuration = IFCExportConfiguration::CreateDefaultConfiguration();
         ifc_export_configuration->VisibleElementsOfCurrentView = true;
         ifc_export_configuration->ExportInternalRevitPropertySets = true;
@@ -109,7 +109,7 @@ namespace ifc_exporter {
         }
     }
 
-    export_to_file_format^ CExport::serialize_inf(List<views_n_sites^>^ files_to_processing){
+    export_to_file_format^ CExport::serialize_inf(List<views_n_sites^>^ files_to_processing) {
 
         string ansi_default_dest_dir = m_ini_file_->read_string("DestinationDirs", "DefaultDestDir");
 
@@ -136,8 +136,7 @@ namespace ifc_exporter {
         return ret_export_format;
     }
 
-    const bool CExport::str_to_bool(const string bool_as_str)
-    {
+    const bool CExport::str_to_bool(const string bool_as_str) {
         bool bret;
         std::istringstream(msclr::interop::marshal_as<std::string>(bool_as_str)) >> std::boolalpha >> bret;
         return bret;
