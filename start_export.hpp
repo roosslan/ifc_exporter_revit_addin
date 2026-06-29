@@ -45,17 +45,17 @@ namespace ifc_exporter {
         static export_to_file_format^ load_exports_config();
         static nwc_export_options create_options_nwc();
         static IFCExportConfiguration^ create_config_ifc();
-        static view3d_name^ get_export_view_id(string export_this_view_3d);
-        /* 22.10.2025 static List <ElementId^>^ GetExportViewIds(string Views3d);  */
+        static view3d_name^ get_export_view_id(string export_this_view_3d);        
         static void export_to_ifc(string path_to_export, ElementId^ view_3d, string file_name, IFCExportOptions^ ifc_export_options, bool do_export);
         static void export_to_nwc(string path_to_export, string file_name, nwc_export_options navisworks_export_options, bool do_export);
         static export_to_file_format^ serialize_inf(List<views_n_sites^>^ files_to_processing);
         static string get_location_to_export(string site_name);
-        static const bool str2bool(string bool_as_str);
+        static const bool str_to_bool(string bool_as_str);
+        /* 22.10.2025 static List <ElementId^>^ GetExportViewIds(string Views3d);  */
     public:
         CExport(UIApplication^ ui_application);
         static string appdata_directory = Environment::GetFolderPath(Environment::SpecialFolder::ApplicationData);
-        static string vendor_directory = appdata_directory + gcnew String(app_directory);
+        static string vendor_directory = appdata_directory + gcnew String(wapp_directory);
         static string views_sites_file_path = vendor_directory + "\\views_sites.sav";
     };
 }

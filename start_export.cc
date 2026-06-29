@@ -35,7 +35,7 @@ namespace ifc_exporter {
                         export_view_n_id = get_export_view_id(row->view_name);
                     }
                     catch (const exception e) {
-                        string exc = Regex::Replace(e->ToString(), "\t|\n|\r", " ");
+                        const string exc = Regex::Replace(e->ToString(), "\t|\n|\r", " ");
                         pipe_toBg_n_qLog->Write("ElementId exportViewId: " + exc + "\n");
                     }
 
@@ -97,7 +97,7 @@ namespace ifc_exporter {
         pipe_toBg_n_qLog->Write("End of export\n"); /* Сигнал для bgHelper, что экспорт Revit'ом завершен */
     }
 
-    void CExport::export_to_nwc(string path_to_export, string file_name, nwc_export_options navisworks_export_options, const bool do_export) {
+    void CExport::export_to_nwc(const string path_to_export, const string file_name, nwc_export_options navisworks_export_options, const bool do_export) {
         if (do_export) {
             try {
                 pipe_toBg_n_qLog->Write("Export view to NWC " + navisworks_export_options->ViewId);
@@ -109,7 +109,7 @@ namespace ifc_exporter {
         }
     }
 
-    void CExport::export_to_ifc(string path_to_export, ElementId^ view_3d, string file_name, IFCExportOptions^ ifc_export_options, const bool do_export) {
+    void CExport::export_to_ifc(const string path_to_export, ElementId^ view_3d, const string file_name, IFCExportOptions^ ifc_export_options, const bool do_export) {
         if (do_export) {
             auto transaction = gcnew Transaction(m_rvt_doc_, "ifc_exporter.IFC_Export");
             transaction->Start();
@@ -127,7 +127,7 @@ namespace ifc_exporter {
         }
     }
 
-    bool CExport::open_file(string file_path)
+    bool CExport::open_file(const string file_path)
         try {
             auto model_path = ModelPathUtils::ConvertUserVisiblePathToModelPath(file_path);
             pipe_toBg_n_qLog->Write("modelPath " + model_path);
@@ -145,7 +145,7 @@ namespace ifc_exporter {
             if (worksets_list) {
                 pipe_toBg_n_qLog->Write("Worksets found.");
                 auto workset_ids = gcnew List<WorksetId^>();
-                for each (WorksetPreview^ workset_preview in worksets_list){
+                for each (WorksetPreview^ workset_preview in worksets_list) {
                     /* нужны 00 и 02; 01* - это связи, они нам не нужны при экспорте */
                     if (workset_preview->Name->StartsWith("00_") || workset_preview->Name->StartsWith("02_")){
                         pipe_toBg_n_qLog->Write("Workset added: " + workset_preview->Id);
@@ -172,13 +172,13 @@ namespace ifc_exporter {
             return true;
         }
         catch (exception e) {
-            string exc = Regex::Replace(e->ToString(), "\t|\n|\r", " ");
+            const string exc = Regex::Replace(e->ToString(), "\t|\n|\r", " ");
             pipe_toBg_n_qLog->Write("OpenFile " + file_path + " - " + exc);
             return false;
         }
     
 
-    view3d_name^ CExport::get_export_view_id(string export_this_view_3d) {
+    view3d_name^ CExport::get_export_view_id(const string export_this_view_3d) {
         auto ret_view3d_names = gcnew List<view3d_name^>;
         auto collector = gcnew FilteredElementCollector(m_rvt_doc_);
 
@@ -235,21 +235,21 @@ namespace ifc_exporter {
         return ret_view3d_names[0];
     }
 
-    void CExport::deserialize_json_into_configuration(string pre_setup_file_path, IFCExportConfiguration^ from_json_ifc_export_configuration, IFCExportOptions^ ifc_export_options) {
+    void CExport::deserialize_json_into_configuration(const string pre_setup_file_path, IFCExportConfiguration^ from_json_ifc_export_configuration, IFCExportOptions^ ifc_export_options) {
         pipe_toBg_n_qLog->Write("Object Notation file (.JSON): " + pre_setup_file_path + "\n");
 
         if (!File::Exists(pre_setup_file_path)) return;
-        string stringified_json = File::ReadAllText(pre_setup_file_path);
+        const string stringified_json = File::ReadAllText(pre_setup_file_path);
 
         auto ifc_project_addr = JsonConvert::DeserializeObject<IFCProjectAddress^>(stringified_json);
         auto ifc_classification_settings = JsonConvert::DeserializeObject<IFCClassification^>(stringified_json);
 
         auto json_serial = gcnew JavaScriptSerializer();
 
-        string proj_addr_json_str = json_serial->Serialize(ifc_project_addr);
+        const string proj_addr_json_str = json_serial->Serialize(ifc_project_addr);
         ifc_export_options->AddOption("ProjectAddress", proj_addr_json_str);
 
-        string classification_json_str = json_serial->Serialize(ifc_classification_settings);
+        const string classification_json_str = json_serial->Serialize(ifc_classification_settings);
         ifc_export_options->AddOption("ClassificationSettings", classification_json_str);
 
         auto jobject = JsonConvert::DeserializeObject<JObject^>(stringified_json);
