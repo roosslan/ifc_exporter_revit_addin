@@ -14,9 +14,9 @@ namespace ifc_exporter {
         Document^ current_doc = nullptr;
 
         for each (views_n_sites ^ row in record_entity->list_views_n_sites)
-            /* Вызываем открытие файла, только если он уже не был открыт ранее */
+            /* Р’С‹Р·С‹РІР°РµРј РѕС‚РєСЂС‹С‚РёРµ С„Р°Р№Р»Р°, С‚РѕР»СЊРєРѕ РµСЃР»Рё РѕРЅ СѓР¶Рµ РЅРµ Р±С‹Р» РѕС‚РєСЂС‹С‚ СЂР°РЅРµРµ */
             if (current_file_path == nullptr || current_file_path != row->rvt_file_path->Trim()) {
-                /* Закрываем предыдущий документ */
+                /* Р—Р°РєСЂС‹РІР°РµРј РїСЂРµРґС‹РґСѓС‰РёР№ РґРѕРєСѓРјРµРЅС‚ */
                 if (current_doc != nullptr) {
                     current_doc->Close(false);
                     current_doc = nullptr;
@@ -24,7 +24,7 @@ namespace ifc_exporter {
 
             if (open_file(row->rvt_file_path->Trim())){
 
-                /* Запоминаем обрабатываемый документ/путь */
+                /* Р—Р°РїРѕРјРёРЅР°РµРј РѕР±СЂР°Р±Р°С‚С‹РІР°РµРјС‹Р№ РґРѕРєСѓРјРµРЅС‚/РїСѓС‚СЊ */
                 current_file_path = row->rvt_file_path->Trim();
                 current_doc = m_rvt_doc_;
 
@@ -38,7 +38,7 @@ namespace ifc_exporter {
                         pipe_toBg_n_qLog->Write("ElementId exportViewId: " + exc + "\n");
                     }
 
-                    /* Использовать JSON с настройками */
+                    /* РСЃРїРѕР»СЊР·РѕРІР°С‚СЊ JSON СЃ РЅР°СЃС‚СЂРѕР№РєР°РјРё */
                     if (row->json_path != "")                        
                         deserialize_json_into_configuration(row->json_path, ifc_export_configuration, ifc_export_options);
                     
@@ -46,7 +46,7 @@ namespace ifc_exporter {
                         ifc_export_configuration->SelectedSite = get_location_to_export(row->site_);
 
                     auto insess = ifc_export_configuration->GetInSession();
-                    /* Передаем все данные из IFCExportConfiguration вовнутрь IFCExportOptions'a: */
+                    /* РџРµСЂРµРґР°РµРј РІСЃРµ РґР°РЅРЅС‹Рµ РёР· IFCExportConfiguration РІРѕРІРЅСѓС‚СЂСЊ IFCExportOptions'a: */
                     ifc_export_configuration->UpdateOptions(ifc_export_options, export_view_n_id->view_id);
 
                     /* TODO: What for?   Get the SiteLocation instance */
@@ -58,12 +58,12 @@ namespace ifc_exporter {
 
 /* === IFC Export ================================================================================================================ */
 
-                    /* Экспорт в IFC будет выполняться, только, если параметр recordEntity->IsIFC_On */
+                    /* Р­РєСЃРїРѕСЂС‚ РІ IFC Р±СѓРґРµС‚ РІС‹РїРѕР»РЅСЏС‚СЊСЃСЏ, С‚РѕР»СЊРєРѕ, РµСЃР»Рё РїР°СЂР°РјРµС‚СЂ recordEntity->IsIFC_On */
                     export_to_ifc(record_entity->rec_export_path, export_view_n_id->view_id, output_file_name, ifc_export_options, record_entity->is_ifc_on);
                     
 /* === NWC Export ================================================================================================================ */
                     nwc_export_options->ViewId = export_view_n_id->view_id;
-                    /* Экспорт в NWC будет выполняться, только, если параметр recordEntity->IsOn */
+                    /* Р­РєСЃРїРѕСЂС‚ РІ NWC Р±СѓРґРµС‚ РІС‹РїРѕР»РЅСЏС‚СЊСЃСЏ, С‚РѕР»СЊРєРѕ, РµСЃР»Рё РїР°СЂР°РјРµС‚СЂ recordEntity->IsOn */
                     export_to_nwc(record_entity->rec_export_path, output_file_name, nwc_export_options, record_entity->is_nwc_on);
                 }
                 catch (exception e){
@@ -86,11 +86,11 @@ namespace ifc_exporter {
             }
         } /* foreach scope + if (current_file_path == nullptr || current_file_path != row->rvt_file_path->Trim()) { */
 
-        /* Закрываем последний документ из views_sites.sav */
+        /* Р—Р°РєСЂС‹РІР°РµРј РїРѕСЃР»РµРґРЅРёР№ РґРѕРєСѓРјРµРЅС‚ РёР· views_sites.sav */
         if (current_doc != nullptr) {
             current_doc->Close(false);
         }
-        pipe_toBg_n_qLog->Write("End of export\n"); /* Сигнал для bgHelper, что экспорт Revit'ом завершен */
+        pipe_toBg_n_qLog->Write("End of export\n"); /* РЎРёРіРЅР°Р» РґР»СЏ bgHelper, С‡С‚Рѕ СЌРєСЃРїРѕСЂС‚ Revit'РѕРј Р·Р°РІРµСЂС€РµРЅ */
     }
 
     void CExport::export_to_nwc(string path_to_export, string file_name, nwc_export_options navisworks_export_options, const bool do_export) {
@@ -110,12 +110,12 @@ namespace ifc_exporter {
             auto transaction = gcnew Transaction(m_rvt_doc_, "ifc_exporter.IFC_Export");
             transaction->Start();
             try {
-                /* Выгружаем указанную 3D-вьюху в отдельный файл */
+                /* Р’С‹РіСЂСѓР¶Р°РµРј СѓРєР°Р·Р°РЅРЅСѓСЋ 3D-РІСЊСЋС…Сѓ РІ РѕС‚РґРµР»СЊРЅС‹Р№ С„Р°Р№Р» */
                 pipe_toBg_n_qLog->Write("Export view to IFC " + view_3d + " \n");
                 
                 m_rvt_doc_->Export(path_to_export, file_name, ifc_export_options);               
             }
-            /* B режиме отладки 0xc0000005 Memory access violation */
+            /* B СЂРµР¶РёРјРµ РѕС‚Р»Р°РґРєРё 0xc0000005 Memory access violation */
             catch (std::exception e) {
                 pipe_toBg_n_qLog->Write("CExport::ExportToIFC: " + gcnew String(e.what()));
             }
@@ -136,14 +136,14 @@ namespace ifc_exporter {
             }
             catch (Autodesk::Revit::Exceptions::CentralModelException^ e){
                 (void)e;
-                /*  "The model is not workshared" exception. В файле нет рабочих наоборов. В этом случае пропускаем их итерацию. */
+                /*  "The model is not workshared" exception. Р’ С„Р°Р№Р»Рµ РЅРµС‚ СЂР°Р±РѕС‡РёС… РЅР°РѕР±РѕСЂРѕРІ. Р’ СЌС‚РѕРј СЃР»СѓС‡Р°Рµ РїСЂРѕРїСѓСЃРєР°РµРј РёС… РёС‚РµСЂР°С†РёСЋ. */
             }
 
             if (worksets_list){
                 pipe_toBg_n_qLog->Write("Worksets found.");
                 auto workset_ids = gcnew List<WorksetId^>();
                 for each (WorksetPreview^ workset_preview in worksets_list){
-                    /* нужны 00 и 02; 01* - это связи они нам не нужны при экспорте */
+                    /* РЅСѓР¶РЅС‹ 00 Рё 02; 01* - СЌС‚Рѕ СЃРІСЏР·Рё РѕРЅРё РЅР°Рј РЅРµ РЅСѓР¶РЅС‹ РїСЂРё СЌРєСЃРїРѕСЂС‚Рµ */
                     if (workset_preview->Name->StartsWith("00_") || workset_preview->Name->StartsWith("02_")){
                         pipe_toBg_n_qLog->Write("Workset added: " + workset_preview->Id);
                         workset_ids->Add(workset_preview->Id);
@@ -154,7 +154,7 @@ namespace ifc_exporter {
                 workset_configuration->Open(workset_ids);
                 open_options->SetOpenWorksetsConfiguration(workset_configuration);
 
-                /* Отсоединить и сохранить рабочие наборы */
+                /* РћС‚СЃРѕРµРґРёРЅРёС‚СЊ Рё СЃРѕС…СЂР°РЅРёС‚СЊ СЂР°Р±РѕС‡РёРµ РЅР°Р±РѕСЂС‹ */
                 open_options->DetachFromCentralOption = DetachFromCentralOption::DetachAndPreserveWorksets;
             }
 
@@ -199,7 +199,7 @@ namespace ifc_exporter {
             pipe_toBg_n_qLog->Write("Thrown an exception! GetExportViewId\n");
         }
 
-        /* 12.2.25 Список для множества 3D-вьюх Navisworks
+        /* 12.2.25 РЎРїРёСЃРѕРє РґР»СЏ РјРЅРѕР¶РµСЃС‚РІР° 3D-РІСЊСЋС… Navisworks
         auto exportViewIds = gcnew List<ElementId^>;        */
 
         for each(View3D^ v in views3d){
@@ -209,20 +209,20 @@ namespace ifc_exporter {
                         auto view3d_name_line = gcnew view3d_name(v->Id, v->Name);
                         ret_view3d_names->Add(view3d_name_line);
                         view3d_name_line = {};
-                        pipe_toBg_n_qLog->Write("3D-view '" + v->Name + "' добавлена в список выбора для экспорта\n");
+                        pipe_toBg_n_qLog->Write("3D-view '" + v->Name + "' РґРѕР±Р°РІР»РµРЅР° РІ СЃРїРёСЃРѕРє РІС‹Р±РѕСЂР° РґР»СЏ СЌРєСЃРїРѕСЂС‚Р°\n");
                     }
             }
-            else /* передали пустое значение вместо имени 3D-вьюхи, экспортируем первое попавшееся, которое содержит в имени navisworks */
+            else /* РїРµСЂРµРґР°Р»Рё РїСѓСЃС‚РѕРµ Р·РЅР°С‡РµРЅРёРµ РІРјРµСЃС‚Рѕ РёРјРµРЅРё 3D-РІСЊСЋС…Рё, СЌРєСЃРїРѕСЂС‚РёСЂСѓРµРј РїРµСЂРІРѕРµ РїРѕРїР°РІС€РµРµСЃСЏ, РєРѕС‚РѕСЂРѕРµ СЃРѕРґРµСЂР¶РёС‚ РІ РёРјРµРЅРё navisworks */
                 if (v->Name->ToLower()->Contains("navisworks")){
 /*                  exportViewIds->Add(v->Id);              */
                     auto view3d_name_line = gcnew view3d_name(v->Id, v->Name);
                     ret_view3d_names->Add(view3d_name_line);
                     view3d_name_line = {};
-                    pipe_toBg_n_qLog->Write("Единственная 3D-view '" + v->Name + "' добавлена в список экспорта\n");
+                    pipe_toBg_n_qLog->Write("Р•РґРёРЅСЃС‚РІРµРЅРЅР°СЏ 3D-view '" + v->Name + "' РґРѕР±Р°РІР»РµРЅР° РІ СЃРїРёСЃРѕРє СЌРєСЃРїРѕСЂС‚Р°\n");
                 }
         }
 
-        /* Правка от dbor: всегда выгружаем только первую с названием Navisworks */
+        /* РџСЂР°РІРєР° РѕС‚ dbor: РІСЃРµРіРґР° РІС‹РіСЂСѓР¶Р°РµРј С‚РѕР»СЊРєРѕ РїРµСЂРІСѓСЋ СЃ РЅР°Р·РІР°РЅРёРµРј Navisworks */
         if (ret_view3d_names->Count != 0){
             return ret_view3d_names[0];
         }
@@ -254,7 +254,7 @@ namespace ifc_exporter {
         try {
             auto json_pair = (KeyValuePair<string, JToken^>^)sub_obj;
 
-            /* Эти не нашлись в типе IFCExportConfiguration, добавляю Опциями?... */
+            /* Р­С‚Рё РЅРµ РЅР°С€Р»РёСЃСЊ РІ С‚РёРїРµ IFCExportConfiguration, РґРѕР±Р°РІР»СЏСЋ РћРїС†РёСЏРјРё?... */
             if (json_pair->Key == "ExchangeRequirement")
                 ifc_export_options->AddOption("ExchangeRequirement", json_pair->Value->ToString());
             if (json_pair->Key == "ExportHostAsSingleEntity")
@@ -269,11 +269,11 @@ namespace ifc_exporter {
                 ifc_export_options->AddOption("UseTypePropertiesInInstacePSets", json_pair->Value->ToString());
 
 /*         if (json_pair->Key == "SitePlacement")
-                параметр SiteTransformBasis ("SitePlacement") будет обработан дополнительно
+                РїР°СЂР°РјРµС‚СЂ SiteTransformBasis ("SitePlacement") Р±СѓРґРµС‚ РѕР±СЂР°Р±РѕС‚Р°РЅ РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅРѕ
 */
-            /* Если поле из Json имеется в типе IFCExportConfiguration, то присваиваем: IFCExportConfiguration->ИмяПоля = Json->ЗначениеПоля */
+            /* Р•СЃР»Рё РїРѕР»Рµ РёР· Json РёРјРµРµС‚СЃСЏ РІ С‚РёРїРµ IFCExportConfiguration, С‚Рѕ РїСЂРёСЃРІР°РёРІР°РµРј: IFCExportConfiguration->РРјСЏРџРѕР»СЏ = Json->Р—РЅР°С‡РµРЅРёРµРџРѕР»СЏ */
             Type^ conf = from_json_ifc_export_configuration->GetType();
-                    if (json_pair->Key != "ActivePhaseId" && json_pair->Key != "ClassificationSettings" && json_pair->Key != "ProjectAddress") { // ActivePhaseId начинает искать BIM::IFC::Export::UI::IFCPhaseAttributes::Validate(int phaseId) и падает
+                    if (json_pair->Key != "ActivePhaseId" && json_pair->Key != "ClassificationSettings" && json_pair->Key != "ProjectAddress") { // ActivePhaseId РЅР°С‡РёРЅР°РµС‚ РёСЃРєР°С‚СЊ BIM::IFC::Export::UI::IFCPhaseAttributes::Validate(int phaseId) Рё РїР°РґР°РµС‚
                         PropertyInfo^ property_info = conf->GetProperty(json_pair->Key);                        
                         if (property_info) {
                             auto parameter_type = property_info->GetMethod->ReturnParameter->ParameterType;

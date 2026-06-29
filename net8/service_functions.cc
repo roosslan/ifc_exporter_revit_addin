@@ -44,10 +44,10 @@ namespace ifc_exporter {
             if (site_name != "") {
                 if (site_name->Contains(site->Name)) {
                     location_sites->push_back(site);
-                    pipe_toBg_n_qLog->Write("Площадка " + site->Name + " добавлена в список экспорта\n");
+                    pipe_toBg_n_qLog->Write("РџР»РѕС‰Р°РґРєР° " + site->Name + " РґРѕР±Р°РІР»РµРЅР° РІ СЃРїРёСЃРѕРє СЌРєСЃРїРѕСЂС‚Р°\n");
                 }
             }
-            else /* Площадки не указали вообще */
+            else /* РџР»РѕС‰Р°РґРєРё РЅРµ СѓРєР°Р·Р°Р»Рё РІРѕРѕР±С‰Рµ */
                 location_sites->push_back(site);
         }
         return location_sites[0]->Name;
@@ -89,7 +89,7 @@ namespace ifc_exporter {
         if (dial == "TaskDialog_Unresolved_References"){
             e->OverrideResult(1);
         }
-        /* Элементы были заняты - выгрузка отменилась */
+        /* Р­Р»РµРјРµРЅС‚С‹ Р±С‹Р»Рё Р·Р°РЅСЏС‚С‹ - РІС‹РіСЂСѓР·РєР° РѕС‚РјРµРЅРёР»Р°СЃСЊ */
         else if (dial == "Dialog_Revit_DocWarnDialog"){
             e->OverrideResult(1);
         }
@@ -103,7 +103,7 @@ namespace ifc_exporter {
             e->OverrideResult(1);
         }
         else {
-            /* ifc_exporter->OnLogsUpdated("Выгрузка споткнулась об: ");
+            /* ifc_exporter->OnLogsUpdated("Р’С‹РіСЂСѓР·РєР° СЃРїРѕС‚РєРЅСѓР»Р°СЃСЊ РѕР±: ");
              * ifc_exporter->OnLogsUpdated(dial);                
              */
         }
@@ -113,10 +113,10 @@ namespace ifc_exporter {
 
         string ansi_default_dest_dir = m_ini_file_->read_string("DestinationDirs", "DefaultDestDir");
 
-        /* В отличие от других строк INF файла, в данном случае для GetPrivateProfileString может быть дана папка с русскими символами в имени */        
-        /* После чтения из файла, ANSI в памяти сразу превращается в UTF16 (т.е. в Unicode) */
+        /* Р’ РѕС‚Р»РёС‡РёРµ РѕС‚ РґСЂСѓРіРёС… СЃС‚СЂРѕРє INF С„Р°Р№Р»Р°, РІ РґР°РЅРЅРѕРј СЃР»СѓС‡Р°Рµ РґР»СЏ GetPrivateProfileString РјРѕР¶РµС‚ Р±С‹С‚СЊ РґР°РЅР° РїР°РїРєР° СЃ СЂСѓСЃСЃРєРёРјРё СЃРёРјРІРѕР»Р°РјРё РІ РёРјРµРЅРё */        
+        /* РџРѕСЃР»Рµ С‡С‚РµРЅРёСЏ РёР· С„Р°Р№Р»Р°, ANSI РІ РїР°РјСЏС‚Рё СЃСЂР°Р·Сѓ РїСЂРµРІСЂР°С‰Р°РµС‚СЃСЏ РІ UTF16 (С‚.Рµ. РІ Unicode) */
         cli::array<unsigned char>^ windows1252_bytes = Encoding::Default->GetBytes(ansi_default_dest_dir);
-        /* У нас всё в UTF8, конвертируем */
+        /* РЈ РЅР°СЃ РІСЃС‘ РІ UTF8, РєРѕРЅРІРµСЂС‚РёСЂСѓРµРј */
         auto default_dest_dir = Encoding::UTF8->GetString(windows1252_bytes);
 
         DateTime^ export_time = Convert::ToDateTime(m_ini_file_->read_string("ControlFlags", "Time"));
@@ -148,7 +148,7 @@ namespace ifc_exporter {
 
         auto v_files_to_process = gcnew List<views_n_sites^>;
 
-        /* Читаем содержимое файла views_sites.sav */
+        /* Р§РёС‚Р°РµРј СЃРѕРґРµСЂР¶РёРјРѕРµ С„Р°Р№Р»Р° views_sites.sav */
         auto str_reader = gcnew StringReader(views_sites_file);
         string sline = nullptr;
 
@@ -170,7 +170,7 @@ namespace ifc_exporter {
         const string inf_file_path = vendor_directory + "\\ifcexprt.inf";
         const string inf_file = File::ReadAllText(inf_file_path);
 
-        /* Захватываем содержимое секции [SourceDisksFiles]: */
+        /* Р—Р°С…РІР°С‚С‹РІР°РµРј СЃРѕРґРµСЂР¶РёРјРѕРµ СЃРµРєС†РёРё [SourceDisksFiles]: */
          auto inf_files_section = gcnew Regex("\\[" + sect_name + "\\]((?:\\r?\\n\\s*[^\\]\\[\\s].*)+)", RegexOptions::Multiline);
          Match^ match_files = inf_files_section->Match(inf_file);
 
@@ -192,7 +192,7 @@ namespace ifc_exporter {
                     bool file_should_be_exported = str_to_bool(line_fpath_n_bool[1]->Trim());
 
                     int file_already_in_list = 1;
-                    /* Добавляем в список обыкновенные RVT, без вьюх и площадок */
+                    /* Р”РѕР±Р°РІР»СЏРµРј РІ СЃРїРёСЃРѕРє РѕР±С‹РєРЅРѕРІРµРЅРЅС‹Рµ RVT, Р±РµР· РІСЊСЋС… Рё РїР»РѕС‰Р°РґРѕРє */
                     for each(auto item in v_files_to_process) {
                         if (item->rvt_file_path == source_disks_file_path)
                             file_already_in_list = 0;

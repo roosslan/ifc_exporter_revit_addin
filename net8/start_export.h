@@ -51,7 +51,6 @@ namespace ifc_exporter {
         static string get_location_to_export(string site_name);
         static const bool str_to_bool(string bool_as_str);
     public:
-        // static void Start(UIApplication^ uiApplication);
         CExport(UIApplication^ ui_application);
         static string appdata_directory = Environment::GetFolderPath(Environment::SpecialFolder::ApplicationData);
         static string vendor_directory = appdata_directory + gcnew String(wapp_directory);

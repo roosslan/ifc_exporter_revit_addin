@@ -9,7 +9,7 @@ namespace ifc_exporter {
 		IExternalApplication^ addin_;
 		UIControlledApplication^ uic_app_addin_;
 
-		/* Унаследовано через IExternalEventHandler */
+		/* РЈРЅР°СЃР»РµРґРѕРІР°РЅРѕ С‡РµСЂРµР· IExternalEventHandler */
 		virtual string GetName();
 		virtual void Execute(UIApplication^ app);
 		void task_run_async_in_context(UIApplication^ app);

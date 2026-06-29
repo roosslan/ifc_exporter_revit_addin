@@ -5,7 +5,7 @@
 namespace ifc_exporter {
 
     [Transaction(TransactionMode::Manual)]
-	/* Љласс-обработчик нажатия кнопки запуска ifc exporter.exe */
+	/* РљР»Р°СЃСЃ-РѕР±СЂР°Р±РѕС‚С‡РёРє РЅР°Р¶Р°С‚РёСЏ РєРЅРѕРїРєРё Р·Р°РїСѓСЃРєР° ifc exporter.exe */
     public ref class btn_click sealed : IExternalCommand {
     public:
         virtual Result Execute(ExternalCommandData^ command_data, string% message, ElementSet^ elements);
