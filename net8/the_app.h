@@ -16,7 +16,7 @@ namespace ifc_exporter {
         static string assembly_location_;
         static IExternalApplication^ external_application_;        
         ExternalEvent^ external_export_event_;
-        static ILog^ logger_; /* = LogManager::GetLogger("ifc_exporter"); */
+        static ILog^ logger_;
         static UIControlledApplication^ uic_application_;
         UIApplication^ ext_ui_application_;
         void try_connect_to_exports_pipe_server(UIApplication^ uiapp);        

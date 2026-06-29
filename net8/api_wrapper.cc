@@ -15,7 +15,7 @@ namespace ifc_exporter {
 
         if (doc == nullptr)
         {
-            TaskDialog::Show("External Event api_wrapper", "Не удалось получить активный документ Revit!");
+            TaskDialog::Show("External Event api_wrapper", "РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ Р°РєС‚РёРІРЅС‹Р№ РґРѕРєСѓРјРµРЅС‚ Revit!");
             return;
         }
         */
