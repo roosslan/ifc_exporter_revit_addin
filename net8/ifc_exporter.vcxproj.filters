@@ -1,0 +1,79 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="api_wrapper.cc">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="the_app.cc">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="start_export.cc">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="service_functions.cc">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="ini_file.cc">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="btn_availability.cc">
+      <Filter>Sources</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="api_wrapper.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="the_app.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="structures.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="start_export.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="btn_availability.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="ini_file.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="sensitive_data.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+    <None Include="packages.config">
+      <Filter>Resources</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Sources">
+      <UniqueIdentifier>{0af9a0da-7230-4167-9ad2-247ec9d7f68c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{47852717-5261-4702-9e2a-64cc121a2563}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{708eaecb-91c3-4185-89bd-4fc3e7bb6441}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\arrow_get.png">
+      <Filter>Resources</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="ifc_exporter.rc">
+      <Filter>Resources</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>
