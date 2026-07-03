@@ -277,8 +277,9 @@ namespace ifc_exporter {
         // Create a StringBuilder for efficient string manipulation
         auto sanitized = gcnew StringBuilder();
 
-        // Remove or replace invalid characters
-        for each (wchar_t c in filename) {
+        /* Remove or replace invalid characters -
+         * and dereference the variable "filename" (handle) inside the loop statement, so the compiler can iterate over the characters */
+        for each (wchar_t c in *filename) {
             if (Array::IndexOf(invalid_chars, c) >= 0) {
                 // Replace invalid characters with underscore
                 sanitized->Append('_');
