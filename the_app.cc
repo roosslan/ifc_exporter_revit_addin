@@ -1,7 +1,7 @@
-﻿#include "the_app.hpp"
-#include "ini_file.hpp"
-#include "start_export.hpp"
-#include "api_wrapper.hpp"
+﻿#include "the_app.h"
+#include "ini_file.h"
+#include "start_export.h"
+#include "api_wrapper.h"
 
 using namespace ifc_exporter;
 
@@ -15,8 +15,8 @@ ui::Result ext_app::DllMain(UIControlledApplication^ hinst_dll) {
     AppDomain::CurrentDomain->AssemblyResolve += gcnew ResolveEventHandler(this, &ext_app::delegate_assembly_resolve); // EventHandler<ResolveEventArgs^>(this, &ext_app::delegate_assembly_resolve);
     create_ribbon_buttons();
 
-    auto handler = gcnew api_wrapper();
-    external_export_event_ = ExternalEvent::Create(handler);
+    export_handler_ = gcnew api_wrapper();
+    external_export_event_ = ExternalEvent::Create(export_handler_);
 
     return ui::Result::Succeeded;
 }
@@ -44,29 +44,34 @@ void ext_app::delegate_on_application_initialized(object sender, Autodesk::Revit
 }
 
 string ext_app::set_up_log_config() {
-    Directory::CreateDirectory(vendor_directory);
+    const string log_path = vendor_directory + "\\ext_addin.dev.log";
     try {
+        Directory::CreateDirectory(vendor_directory);
         ini_file = gcnew ini_simple(vendor_directory + "\\ifcexprt.inf");
+
+        const string config_name = ini_file->read_string("Strings", "Disk1");
+        if (String::IsNullOrEmpty(config_name)) {
+            File::AppendAllText(log_path, DateTime::Now.ToString("dd.MM.yyyy hh:mm tt") + "'[ifc_exporter] log4net_config= ' key not found!\n");
+            return nullptr;
+        }
+
+        const string config_file_path = Path::Combine(vendor_directory, config_name);
+        auto app_config_xml = gcnew XmlDocument();
+        app_config_xml->Load(config_file_path);
+        XmlNode^ node = app_config_xml->SelectSingleNode("/log4net/appender/file");
+        if (node != nullptr) {
+            node->Attributes["value"]->Value = log_path;
+            app_config_xml->Save(config_file_path);
+        }
+
+        log4net::Config::XmlConfigurator::Configure(gcnew FileInfo(config_file_path));
+        return config_file_path;
     }
-    catch (const std::exception&) {    
-        File::AppendAllText(vendor_directory + "\\ext_addin.dev.log", DateTime::Now.ToString("dd.MM.yyyy hh:mm tt") + "ifc_exporter: The inf-file not found!\n");
+    catch (exception e) {
+        /* Ошибка настройки лога не должна мешать загрузке надстройки */
+        File::AppendAllText(log_path, DateTime::Now.ToString("dd.MM.yyyy hh:mm tt") + "set_up_log_config: " + e->Message + "\n");
+        return nullptr;
     }
-    string config_file_path = ini_file->read_string("Strings", "Disk1");
-
-    if (config_file_path == "")
-        File::AppendAllText(vendor_directory + "\\ext_addin.dev.log", DateTime::Now.ToString("dd.MM.yyyy hh:mm tt") + "'[ifc_exporter] log4net_config= ' key not found!\n");
-
-    config_file_path = vendor_directory + "\\" + config_file_path;
-
-    auto app_config_xml = gcnew XmlDocument();
-    app_config_xml->Load(config_file_path);
-    XmlNode^ node = app_config_xml->SelectSingleNode("/log4net/appender/file");
-    /* */
-    node->Attributes["value"]->Value = vendor_directory + "\\ext_addin.dev.log";
-    app_config_xml->Save(config_file_path);
-
-    log4net::Config::XmlConfigurator::Configure(gcnew FileInfo(config_file_path));
-    return config_file_path;
 }
 
 void ext_app::create_ribbon_buttons() {    
@@ -108,67 +113,54 @@ ui::Result ext_app::OnShutdown(ui::UIControlledApplication^ uiapp) {
     return (ui::Result::Succeeded);
 }
 
-void ext_app::pipe_handler(object pipe_parameter) {
-    auto pipe_client = reinterpret_cast<NamedPipeClientStream^>(pipe_parameter);
-
-    logger_->Info("ext_app::pipe_handler: Connecting... ");
-
-    while (!pipe_client->IsConnected) {
-        /* std::cout << "pipe_handler not connected!"; */
-    }
-
-    logger_->Info("Pipe handler connected.");
-
-    if (pipe_client->CanWrite) {
-        auto str_writer = gcnew StreamWriter(pipe_client);
-        str_writer->AutoFlush = true;
-        
-        /* При запуске проверяем, не выставила ли фоновая служба флаг приступать к экспорту: */
-        if (ini_file->read_string("ControlFlags", "Enabled") != "false") {
-            if (file_version_info_){
-	            ext_version_ = file_version_info_->FileVersion;
-	            str_writer->Write("ext_addin version: " + ext_version_ + "\n");
-            }
-
-            /* Сигнал для bgHelper, что Revit успешно запустился и начался экспорт */
-            str_writer->Write("Begin of export\n");
-            ini_file->write_string("ControlFlags", "Enabled", "false");
-
-            try {
-                /* Оборачиваем весь код по экспорту в контекст Revit: */
-                external_export_event_->Raise();
-            }
-            catch (const std::exception& e) {
-                str_writer->Write(e.what());
-
-            }
-        }
-    }
-    else
-        logger_->Info("Pipe handler can not write!");
-}
-
 void ext_app::try_connect_to_exports_pipe_server(UIApplication^ uiapp) {
-try {
-    auto pipe_client = gcnew NamedPipeClientStream(".", "\\bghelperpipe", PipeDirection::InOut);
-    try {
-        auto pipe_thread = gcnew Thread(gcnew ParameterizedThreadStart(this, &ext_app::pipe_connect));
-        logger_->Info("pipe_thread->Start");
-        pipe_thread->Start(pipe_client);
+    auto pipe_thread = gcnew Thread(gcnew ThreadStart(this, &ext_app::pipe_worker));
+    pipe_thread->IsBackground = true;  /* не держит процесс Revit при закрытии */
+    pipe_thread->Name = "ifc_exporter.pipe_worker";
+    logger_->Info("pipe_thread->Start");
+    pipe_thread->Start();
+}
 
-        auto conn_handler_thread = gcnew Thread(gcnew ParameterizedThreadStart(this, &ext_app::pipe_handler));
-        logger_->Info("conn_handler_thread->Start");
-        conn_handler_thread->Start(pipe_client);
+void ext_app::pipe_worker() {
+    try {
+        /* Экспорт не заказан (обычный запуск Revit пользователем) — к каналу не подключаемся */
+        if (ini_file == nullptr || !ini_file->read_string("ControlFlags", "Enabled")->Equals("true", StringComparison::OrdinalIgnoreCase))
+            return;
+
+        logger_->Info("ext_app::pipe_worker: Connecting... ");
+        auto pipe_client = gcnew NamedPipeClientStream(".", "\\bghelperpipe", PipeDirection::InOut);
+        try {
+            /* Блокирующее ожидание без нагрузки на процессор */
+            pipe_client->Connect(30000);
+        }
+        catch (TimeoutException^) {
+            logger_->Info("bgHelper did not respond within 30 s, export canceled\n");
+            delete pipe_client;
+            return;
+        }
+        logger_->Info("Pipe connected.");
+
+        pipe_writer_ = gcnew StreamWriter(pipe_client);
+        pipe_writer_->AutoFlush = true;
+        if (file_version_info_) {
+            ext_version_ = file_version_info_->FileVersion;
+            pipe_writer_->Write("ext_addin version: " + ext_version_ + "\n");
+        }
+
+        /* Сигнал для bgHelper, что Revit успешно запустился и начался экспорт */
+        pipe_writer_->Write("Begin of export\n");
+        ini_file->write_string("ControlFlags", "Enabled", "false");
+
+        /* Тот же канал используется в CExport */
+        export_handler_->pipe_writer = pipe_writer_;
+        /* Оборачиваем весь код по экспорту в контекст Revit: */
+        external_export_event_->Raise();
     }
-    catch (TimeoutException^ e) {
-        logger_->Info("Received from server: " + e->ToString());
-    }  
-    
-    /* _logger->Info("_logger->Info(\"End of export?\")"); */
-}
-catch (exception e) {
-    this->logger_->Error(e->ToString());
-}
+    catch (exception e) {
+        logger_->Info("ext_app::pipe_worker: " + e->ToString() + "\n");
+        if (pipe_writer_ != nullptr)
+            pipe_writer_->Write("Error: " + e->Message + "\n");
+    }
 }
 
 void ext_app::delegate_component_manager_ui_element_activated(object sender, UIElementActivatedEventArgs^ e) {
@@ -242,16 +234,6 @@ Autodesk::Windows::RibbonButton^ ext_app::create_revits_button(const string btn_
      *  revitsButton->Width = revitsButton->Height;
      */
     return revitsButton;
-}
-
-void ext_app::pipe_connect(object pipe_parameter) {
-    logger_->Info("ext_app::pipe_connect: Connecting... ");
-    try {
-        reinterpret_cast<NamedPipeClientStream^>(pipe_parameter)->Connect();
-    }
-    catch (exception ex) {
-        logger_->Info("Connecting the pipe throw an exception: " + ex->ToString());
-    }
 }
 
 /* virtual */

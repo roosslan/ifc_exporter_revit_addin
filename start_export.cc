@@ -1,6 +1,6 @@
 /* last upd: rusibragimov 22.6.2026 */
 
-#include "start_export.hpp"
+#include "start_export.h"
 
 namespace ifc_exporter {
 
@@ -98,56 +98,69 @@ namespace ifc_exporter {
     }
 
     void CExport::export_to_nwc(const string path_to_export, const string file_name, nwc_export_options navisworks_export_options, const bool do_export) {
-        if (do_export) {
-            try {
-                pipe_toBg_n_qLog->Write("Export view to NWC " + navisworks_export_options->ViewId);
-                m_rvt_doc_->Export(path_to_export, file_name, navisworks_export_options);
-            }
-            catch (std::exception e) {
-                pipe_toBg_n_qLog->Write("CExport::ExportToNWC: " + gcnew String(e.what()));
-            }
+        if (!do_export)
+            return;
+
+        /* Без установленного экспортёра Navisworks метод Export бросает исключение */
+        if (!OptionalFunctionalityUtils::IsNavisworksExporterAvailable()) {
+            pipe_toBg_n_qLog->Write("CExport::export_to_nwc: Navisworks exporter is not installed\n");
+            return;
+        }
+        try {
+            pipe_toBg_n_qLog->Write("Export view to NWC " + navisworks_export_options->ViewId + "\n");
+            m_rvt_doc_->Export(path_to_export, file_name, navisworks_export_options);
+        }
+        catch (exception e) {
+            pipe_toBg_n_qLog->Write("CExport::export_to_nwc: " + Regex::Replace(e->ToString(), "\t|\n|\r", " ") + "\n");
         }
     }
 
     void CExport::export_to_ifc(const string path_to_export, ElementId^ view_3d, const string file_name, IFCExportOptions^ ifc_export_options, const bool do_export) {
-        if (do_export) {
-            auto transaction = gcnew Transaction(m_rvt_doc_, "ifc_exporter.IFC_Export");
-            transaction->Start();
-            try {
-                /* Выгружаем указанную 3D-вьюху в отдельный файл */
-                pipe_toBg_n_qLog->Write("Export view to IFC " + view_3d + " \n");
-                
-                m_rvt_doc_->Export(path_to_export, file_name, ifc_export_options);               
-            }
-            /* B режиме отладки 0xc0000005 Memory access violation */
-            catch (std::exception e) {
-                pipe_toBg_n_qLog->Write("CExport::ExportToIFC: " + gcnew String(e.what()));
-            }
-            transaction->Commit();
+        if (!do_export)
+            return;
+
+        /* Объявление без gcnew: Dispose вызовется автоматически при выходе из области видимости */
+        Transaction transaction(m_rvt_doc_, "ifc_exporter.IFC_Export");
+        try {
+            transaction.Start();
+            /* Выгружаем указанную 3D-вьюху в отдельный файл */
+            pipe_toBg_n_qLog->Write("Export view to IFC " + view_3d + "\n");
+            m_rvt_doc_->Export(path_to_export, file_name, ifc_export_options);
+        }
+        /* NB: 0xc0000005 (AccessViolationException) так не перехватывается — процесс Revit завершится */
+        catch (exception e) {
+            pipe_toBg_n_qLog->Write("CExport::export_to_ifc: " + Regex::Replace(e->ToString(), "\t|\n|\r", " ") + "\n");
+        }
+        finally {
+            /* Изменения, внесённые экспортёром в документ, не сохраняются */
+            if (transaction.GetStatus() == TransactionStatus::Started)
+                transaction.RollBack();
         }
     }
 
-    bool CExport::open_file(const string file_path)
+    bool CExport::open_file(const string file_path) {
+        /* Иначе при неудаче в m_rvt_doc_ остался бы предыдущий, уже закрытый документ */
+        m_rvt_doc_ = nullptr;
+
         try {
             auto model_path = ModelPathUtils::ConvertUserVisiblePathToModelPath(file_path);
             pipe_toBg_n_qLog->Write("modelPath " + model_path);
 
             auto open_options = gcnew OpenOptions();
-            IList<WorksetPreview^>^ worksets_list;
+            IList<WorksetPreview^>^ worksets_list = nullptr;
             try {
                 worksets_list = WorksharingUtils::GetUserWorksetInfo(model_path);
             }
-            catch (Autodesk::Revit::Exceptions::CentralModelException^ e) {
-                (void)e;
-                /*  "The model is not workshared" exception. В файле нет рабочих наоборов. В этом случае пропускаем их итерацию. */
+            catch (Autodesk::Revit::Exceptions::CentralModelException^) {
+                /*  "The model is not workshared" exception. В файле нет рабочих наборов. В этом случае пропускаем их итерацию. */
             }
 
-            if (worksets_list) {
+            if (worksets_list != nullptr) {
                 pipe_toBg_n_qLog->Write("Worksets found.");
                 auto workset_ids = gcnew List<WorksetId^>();
                 for each (WorksetPreview^ workset_preview in worksets_list) {
                     /* нужны 00 и 02; 01* - это связи, они нам не нужны при экспорте */
-                    if (workset_preview->Name->StartsWith("00_") || workset_preview->Name->StartsWith("02_")){
+                    if (workset_preview->Name->StartsWith("00_") || workset_preview->Name->StartsWith("02_")) {
                         pipe_toBg_n_qLog->Write("Workset added: " + workset_preview->Id);
                         workset_ids->Add(workset_preview->Id);
                     }
@@ -161,22 +174,22 @@ namespace ifc_exporter {
                 open_options->DetachFromCentralOption = DetachFromCentralOption::DetachAndPreserveWorksets;
             }
 
-            try {
-                m_rvt_doc_ = m_rvt_app_->OpenDocumentFile(model_path, open_options);
-            }
-            catch (Autodesk::Revit::Exceptions::OperationCanceledException^ e) {
-                if (!m_rvt_doc_)
-                    pipe_toBg_n_qLog->Write("Operation ganzel! - RVT_Document is null " + e->Message);
-            }            
-
-            return true;
+            m_rvt_doc_ = m_rvt_app_->OpenDocumentFile(model_path, open_options);
+        }
+        catch (Autodesk::Revit::Exceptions::OperationCanceledException^ e) {
+            pipe_toBg_n_qLog->Write("OpenFile " + file_path + " - operation canceled: " + e->Message + "\n");
         }
         catch (exception e) {
             const string exc = Regex::Replace(e->ToString(), "\t|\n|\r", " ");
-            pipe_toBg_n_qLog->Write("OpenFile " + file_path + " - " + exc);
+            pipe_toBg_n_qLog->Write("OpenFile " + file_path + " - " + exc + "\n");
+        }
+
+        if (m_rvt_doc_ == nullptr) {
+            pipe_toBg_n_qLog->Write("OpenFile " + file_path + " - document is not opened, file skipped\n");
             return false;
         }
-    
+        return true;
+    }
 
     view3d_name^ CExport::get_export_view_id(const string export_this_view_3d) {
         auto ret_view3d_names = gcnew List<view3d_name^>;
@@ -197,8 +210,8 @@ namespace ifc_exporter {
                 }
             }
         }
-        catch (const std::exception&) {
-            pipe_toBg_n_qLog->Write("Thrown an exception! GetExportViewId\n");
+        catch (exception e) {
+            pipe_toBg_n_qLog->Write("Thrown an exception! GetExportViewId: " + e->Message + "\n");
         }
 
         /* 12.2.25 Список для множества 3D-вьюх Navisworks
@@ -255,8 +268,8 @@ namespace ifc_exporter {
         auto jobject = JsonConvert::DeserializeObject<JObject^>(stringified_json);
 
         for each (auto sub_obj in jobject) {
+        auto json_pair = (KeyValuePair<string, JToken^>^)sub_obj;
         try {
-            auto json_pair = (KeyValuePair<string, JToken^>^)sub_obj;
 
             /* Эти не нашлись в типе IFCExportConfiguration, добавляю Опциями?... */
             if (json_pair->Key == "ExchangeRequirement")
@@ -290,13 +303,15 @@ namespace ifc_exporter {
                             if (parameter_type->Name->Contains("Double"))
                                 property_info->SetValue(from_json_ifc_export_configuration, json_pair->Value->ToObject<double>());
 
-                            if (parameter_type->Name->Contains("Int32") || parameter_type->BaseType->Name == "Enum")
+                            if (parameter_type->Name->Contains("Int32") || parameter_type->IsEnum)
                                 property_info->SetValue(from_json_ifc_export_configuration, json_pair->Value->ToObject<int>());
                         }
                     }
         }
-        catch (const std::exception& e) {
-            pipe_toBg_n_qLog->Write("Parsing Json exception: " + gcnew String(e.what()) + "\n");  }
+        catch (exception e) {
+            /* Ошибка в одном поле не прерывает разбор остальных */
+            pipe_toBg_n_qLog->Write("Parsing Json, key '" + json_pair->Key + "': " + e->Message + "\n");
+        }
         }
     }
 }

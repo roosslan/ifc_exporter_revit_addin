@@ -24,8 +24,8 @@ Result ext_app::DllMain(UIControlledApplication^ hinst_dll) {
     AppDomain::CurrentDomain->AssemblyResolve += gcnew ResolveEventHandler(this, &ext_app::delegate_assembly_resolve);
     create_ribbon_buttons();
 
-    auto handler = gcnew api_wrapper();
-    external_export_event_ = ExternalEvent::Create(handler);
+    export_handler_ = gcnew api_wrapper();
+    external_export_event_ = ExternalEvent::Create(export_handler_);
 
     return ui::Result::Succeeded;
 }
@@ -48,29 +48,34 @@ void ext_app::delegate_on_application_initialized(object sender, Autodesk::Revit
 }
 
 string ext_app::set_up_log_config() {
-    Directory::CreateDirectory(vendor_directory);
+    const string log_path = vendor_directory + "\\ext_addin.dev.log";
     try {
+        Directory::CreateDirectory(vendor_directory);
         ini_file = gcnew ini_simple(vendor_directory + "\\ifcexprt.inf");
+
+        const string config_name = ini_file->read_string("Strings", "Disk1");
+        if (String::IsNullOrEmpty(config_name)) {
+            File::AppendAllText(log_path, DateTime::Now.ToString("dd.MM.yyyy hh:mm tt") + "'[ifc_exporter] log4net_config= ' key not found!\n");
+            return nullptr;
+        }
+
+        const string config_file_path = Path::Combine(vendor_directory, config_name);
+        auto app_config_xml = gcnew XmlDocument();
+        app_config_xml->Load(config_file_path);
+        XmlNode^ node = app_config_xml->SelectSingleNode("/log4net/appender/file");
+        if (node != nullptr) {
+            node->Attributes["value"]->Value = log_path;
+            app_config_xml->Save(config_file_path);
+        }
+
+/*      log4net::Config::XmlConfigurator::Configure(gcnew FileInfo(config_file_path)); */
+        return config_file_path;
     }
-    catch (const std::exception&) {    
-        File::AppendAllText(vendor_directory + "\\ext_addin.dev.log", DateTime::Now.ToString("dd.MM.yyyy hh:mm tt") + "ifc_exporter: The inf-file not found!\n");
+    catch (exception e) {
+        /* Ошибка настройки лога не должна мешать загрузке надстройки */
+        File::AppendAllText(log_path, DateTime::Now.ToString("dd.MM.yyyy hh:mm tt") + "set_up_log_config: " + e->Message + "\n");
+        return nullptr;
     }
-    string config_file_path = ini_file->read_string("Strings", "Disk1");
-
-    if (config_file_path == "")
-        File::AppendAllText(vendor_directory + "\\ext_addin.dev.log", DateTime::Now.ToString("dd.MM.yyyy hh:mm tt") + "'[ifc_exporter] log4net_config= ' key not found!\n");
-
-    config_file_path = vendor_directory + "\\" + config_file_path;
-
-    auto app_config_xml = gcnew XmlDocument();
-    app_config_xml->Load(config_file_path);
-    XmlNode^ node = app_config_xml->SelectSingleNode("/log4net/appender/file");
-    /* */
-    node->Attributes["value"]->Value = vendor_directory + "\\ext_addin.dev.log";
-    app_config_xml->Save(config_file_path);
-
-/*  log4net::Config::XmlConfigurator::Configure(gcnew FileInfo(config_file_path)); */
-    return config_file_path;
 }
 
 void ext_app::create_ribbon_buttons() {
@@ -110,64 +115,49 @@ Result ext_app::OnShutdown(UIControlledApplication^ uiapp) {
     return (ui::Result::Succeeded);
 }
 
-void ext_app::pipe_handler(object pipe_parameter) {
-    auto pipe_client = reinterpret_cast<NamedPipeClientStream^>(pipe_parameter);
-
-    auto ssw_options = gcnew StreamPipeWriterOptions(System::Buffers::MemoryPool<byte>::Shared, 4096, true);
-    PipeWriter^ pipe_writer;
-    pipe_writer->Create(pipe_client, ssw_options);
-
-    logger_->info("ext_app::pipe_handler: Connecting... ");
-    
-    while (!pipe_client->IsConnected) {
-        /* std::cout << "pipeHandler not Connected!"; */
-    }
-
-    logger_->info("Pipe handler connected.");
-
-    if (pipe_client->CanWrite) {
-        auto ss_writer = gcnew StreamWriter(pipe_client, Encoding::UTF8, 4096, true);
-        ss_writer->AutoFlush = true;
-        
-        // При запуске проверяем, не выставила ли фоновая служба флаг приступать к экспорту:
-        if (ini_file->read_string("ControlFlags", "Enabled") != "false") {
-            ss_writer->Write("Begin of export\n");  /* Сигнал для bgHelper, что Revit успешно запустился и начался экспорт */
-            ini_file->write_string("ControlFlags", "Enabled", "false");
-
-            try {
-                // Оборачиваем весь код по экспорту в контекст Revit:
-                external_export_event_->Raise();
-            }
-            catch (const std::exception& e) {
-                ss_writer->Write(e.what());
-
-            }
-        }
-    }
-    else
-        logger_->info("Pipe handler can not write!");
+void ext_app::try_connect_to_exports_pipe_server(UIApplication^ uiapp) {
+    auto pipe_thread = gcnew Thread(gcnew ThreadStart(this, &ext_app::pipe_worker));
+    pipe_thread->IsBackground = true;  /* не держит процесс Revit при закрытии */
+    pipe_thread->Name = "ifc_exporter.pipe_worker";
+    logger_->info("pipe_thread->Start");
+    pipe_thread->Start();
 }
 
-void ext_app::try_connect_to_exports_pipe_server(UIApplication^ uiapp) {
+void ext_app::pipe_worker() {
     try {
+        /* Экспорт не заказан (обычный запуск Revit пользователем) — к каналу не подключаемся */
+        if (ini_file == nullptr || !ini_file->read_string("ControlFlags", "Enabled")->Equals("true", StringComparison::OrdinalIgnoreCase))
+            return;
+
+        logger_->info("ext_app::pipe_worker: Connecting... ");
         auto pipe_client = gcnew NamedPipeClientStream(".", "\\bghelperpipe", PipeDirection::InOut);
         try {
-            auto pipe_thread = gcnew Thread(gcnew ParameterizedThreadStart(this, &ext_app::pipe_connect));
-            logger_->info("pipeThread->Start");
-            pipe_thread->Start(pipe_client);
-
-            auto conn_handler_thread = gcnew Thread(gcnew ParameterizedThreadStart(this, &ext_app::pipe_handler));
-            logger_->info("connHandlerThread->Start");
-            conn_handler_thread->Start(pipe_client);
+            /* Блокирующее ожидание без нагрузки на процессор */
+            pipe_client->Connect(30000);
         }
-        catch (TimeoutException^ e) {
-            logger_->info("Received from server: " + e->ToString());
-        }  
-        
-        /* _logger->Info("_logger->Info(\"End of export?\")"); */
+        catch (TimeoutException^) {
+            logger_->info("bgHelper did not respond within 30 s, export canceled\n");
+            delete pipe_client;
+            return;
+        }
+        logger_->info("Pipe connected.");
+
+        pipe_writer_ = gcnew StreamWriter(pipe_client, Encoding::UTF8, 4096, true);
+        pipe_writer_->AutoFlush = true;
+
+        /* Сигнал для bgHelper, что Revit успешно запустился и начался экспорт */
+        pipe_writer_->Write("Begin of export\n");
+        ini_file->write_string("ControlFlags", "Enabled", "false");
+
+        /* Тот же канал используется в CExport */
+        export_handler_->pipe_writer = pipe_writer_;
+        /* Оборачиваем весь код по экспорту в контекст Revit: */
+        external_export_event_->Raise();
     }
     catch (exception e) {
-        this->logger_->error(e->ToString());
+        logger_->info("ext_app::pipe_worker: " + e->ToString() + "\n");
+        if (pipe_writer_ != nullptr)
+            pipe_writer_->Write("Error: " + e->Message + "\n");
     }
 }
 
@@ -202,16 +192,6 @@ void ext_app::on_export_button_click() {
     catch (exception e){
         File::AppendAllText(vendor_directory + "\\ext_addin.dev.log", DateTime::Now.ToString("dd.MM.yyyy hh:mm tt") + "Exception " + e->ToString() + "\n");
         logger_->info("Exception " + e->ToString() + "\n");
-    }
-}
-
-void ext_app::pipe_connect(object pipe_parameter) {
-    logger_->info("ext_app::pipe_connect: Connecting... ");
-    try {
-        reinterpret_cast<NamedPipeClientStream^>(pipe_parameter)->Connect();
-    }
-    catch (exception ex){
-        logger_->info("Connecting the pipe throw an exception: " + ex->ToString());
     }
 }
 

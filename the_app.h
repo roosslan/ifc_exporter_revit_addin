@@ -1,13 +1,16 @@
 ﻿#pragma once
 
-#include "stdafx.hpp"
-#include "ini_file.hpp"
-#include "sensitive_data.hpp"
+#include "stdafx.h"
+#include "ini_file.h"
+#include "api_wrapper.h"
+#include "sensitive_data.h"
 
 namespace ifc_exporter {
 
     public ref class ext_app : IExternalApplication {
         ExternalEvent^ external_export_event_;
+        api_wrapper^ export_handler_;
+        static StreamWriter^ pipe_writer_;
         static ILog^ logger_ = LogManager::GetLogger("ifc_exporter");
         static UIControlledApplication^ uic_application_;
         UIApplication^ ext_ui_application_;
@@ -18,8 +21,7 @@ namespace ifc_exporter {
         void delegate_on_application_initialized(object sender, ApplicationInitializedEventArgs^ e);
         string set_up_log_config();
         void create_ribbon_buttons();
-        void pipe_connect(object pipe_parameter);
-        void pipe_handler(object pipe_parameter);
+        void pipe_worker();
         void on_export_button_click();
         FileVersionInfo^ file_version_info_;
         Assembly^ ext_dll_ = Assembly::GetExecutingAssembly();

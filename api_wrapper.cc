@@ -1,7 +1,7 @@
-#include "stdafx.hpp"
+#include "stdafx.h"
 
-#include "api_wrapper.hpp"
-#include "start_export.hpp"
+#include "api_wrapper.h"
+#include "start_export.h"
 
 namespace ifc_exporter {
     api_wrapper::api_wrapper() {
@@ -20,13 +20,13 @@ namespace ifc_exporter {
         */
         task_run_async_in_context(app);
     }
-    catch (const std::exception& e) {
-        (void)e;
-        /* File::AppendAllText(app_directory + "\\ext_addin.dev.log", DateTime::Now.ToString("dd.MM.yyyy hh:mm tt") + "api_wrapper::Execute ");  */
+    catch (exception e) {
+        File::AppendAllText(CExport::vendor_directory + "\\ext_addin.dev.log",
+            DateTime::Now.ToString("dd.MM.yyyy hh:mm tt") + "api_wrapper::Execute: " + e->ToString() + "\n");
     }
 
     void api_wrapper::task_run_async_in_context(UIApplication^ app) {
-        auto ifcexporter = gcnew CExport(app);
+        auto ifcexporter = gcnew CExport(app, pipe_writer);
     }
 
     /* virtual */

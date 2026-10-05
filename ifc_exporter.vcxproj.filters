@@ -29,28 +29,28 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="the_app.hpp">
+    <ClInclude Include="the_app.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="ini_file.hpp">
+    <ClInclude Include="ini_file.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="start_export.hpp">
+    <ClInclude Include="start_export.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="api_wrapper.hpp">
+    <ClInclude Include="api_wrapper.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="stdafx.hpp">
+    <ClInclude Include="stdafx.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="structures.hpp">
+    <ClInclude Include="structures.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="sensitive_data.hpp">
+    <ClInclude Include="sensitive_data.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

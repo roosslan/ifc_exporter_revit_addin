@@ -6,6 +6,8 @@ namespace ifc_exporter {
 	public ref class api_wrapper : IExternalEventHandler {
 	public:
 		api_wrapper();
+		/* Канал к bgHelper, открытый в ext_app::pipe_worker */
+		StreamWriter^ pipe_writer;
 		IExternalApplication^ addin_;
 		UIControlledApplication^ uic_app_addin_;
 

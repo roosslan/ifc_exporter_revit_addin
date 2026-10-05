@@ -21,13 +21,13 @@ namespace ifc_exporter {
         */
         task_run_async_in_context(app);
     }
-    catch (const std::exception& e) {
-        (void)e;
-        /* File::AppendAllText("\\ext_addin.dev.log", DateTime::Now.ToString("dd.MM.yyyy hh:mm tt") + "apiWrapper::Execute ");  */
+    catch (exception e) {
+        File::AppendAllText(CExport::vendor_directory + "\\ext_addin.dev.log",
+            DateTime::Now.ToString("dd.MM.yyyy hh:mm tt") + "api_wrapper::Execute: " + e->ToString() + "\n");
     }
 
     void api_wrapper::task_run_async_in_context(UIApplication^ app) {
-        auto ifcexporter = gcnew CExport(app);
+        auto ifcexporter = gcnew CExport(app, pipe_writer);
     }
 
     /* virtual */

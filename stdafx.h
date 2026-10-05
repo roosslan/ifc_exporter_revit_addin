@@ -1,5 +1,5 @@
 ﻿/*
- *  stdafx.hpp
+ *  stdafx.h
 */
 
 #ifndef STDAFX_H
