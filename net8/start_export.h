@@ -51,7 +51,7 @@ namespace ifc_exporter {
         static const bool str_to_bool(string bool_as_str);
         /* 22.10.2025 static List <ElementId^>^ GetExportViewIds(string Views3d);  */
     public:
-        CExport(UIApplication^ ui_application);
+        CExport(UIApplication^ ui_application, StreamWriter^ pipe_writer);
         static string appdata_directory = Environment::GetFolderPath(Environment::SpecialFolder::ApplicationData);
         static string vendor_directory = appdata_directory + gcnew String(wapp_directory);
         static string views_sites_file_path = vendor_directory + "\\views_sites.sav";

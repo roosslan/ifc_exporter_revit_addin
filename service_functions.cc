@@ -1,9 +1,9 @@
 
-#include "start_export.hpp"
+#include "start_export.h"
 
 namespace ifc_exporter {
 
-    CExport::CExport(UIApplication^ ui_application) {
+    CExport::CExport(UIApplication^ ui_application, StreamWriter^ pipe_writer) {
         ui_application->Application->FailuresProcessing += gcnew EventHandler<FailuresProcessingEventArgs^>(&CExport::get_failure_dialog);
         ui_application->DialogBoxShowing += gcnew EventHandler<DialogBoxShowingEventArgs^>(&CExport::get_warn_dialog);
 
@@ -14,10 +14,8 @@ namespace ifc_exporter {
         auto sav_fname = m_ini_file_->read_string("Manufacturer", "sav_file_for_export");
         views_sites_file_path = vendor_directory + "\\" + sav_fname;
 
-        auto pipe_client = gcnew NamedPipeClientStream(".", "\\bghelperpipe", PipeDirection::InOut);
-        pipe_client->Connect();
-        pipe_toBg_n_qLog = gcnew StreamWriter(pipe_client);
-        pipe_toBg_n_qLog->AutoFlush = true;
+        /* Канал уже подключён в ext_app::pipe_worker */
+        pipe_toBg_n_qLog = pipe_writer;
 
         ui_application->Application->FailuresProcessing -= gcnew EventHandler<FailuresProcessingEventArgs^>(&CExport::get_failure_dialog);
         ui_application->DialogBoxShowing -= gcnew EventHandler<DialogBoxShowingEventArgs^>(&CExport::get_warn_dialog);
@@ -115,13 +113,8 @@ namespace ifc_exporter {
 
     export_to_file_format^ CExport::serialize_inf(List<views_n_sites^>^ files_to_processing) {
 
-        const string ansi_default_dest_dir = m_ini_file_->read_string("DestinationDirs", "DefaultDestDir");
-
-        /* В отличие от других строк INF файла, в данном случае для GetPrivateProfileString может быть дана папка с русскими символами в имени */        
-        /* После чтения из файла, ANSI в памяти сразу превращается в UTF16 (т.е. в Unicode) */
-        cli::array<unsigned char>^ windows1252_bytes = Encoding::Default->GetBytes(ansi_default_dest_dir);
-        /* У нас всё в UTF8, конвертируем */
-        auto default_dest_dir = Encoding::UTF8->GetString(windows1252_bytes);
+        /* INI читается как UTF-8, поэтому кириллица в пути не требует перекодировки */
+        const string default_dest_dir = m_ini_file_->read_string("DestinationDirs", "DefaultDestDir");
 
         DateTime^ export_time = Convert::ToDateTime(m_ini_file_->read_string("ControlFlags", "Time"));
         const string revit_version = m_ini_file_->read_string("ControlFlags", "RevitVersion");
