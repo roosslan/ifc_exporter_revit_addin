@@ -32,7 +32,6 @@ using namespace System::Web::Script::Serialization;
 using namespace System::Reflection;
 using namespace System::Resources;
 using namespace System::Diagnostics;
-using namespace System::Text::Json;
 using namespace System::Windows::Interop;
 using namespace System::Windows::Threading;
 using namespace System::Threading::Tasks;

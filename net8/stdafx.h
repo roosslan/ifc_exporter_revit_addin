@@ -28,7 +28,6 @@ using namespace System::Text;
 using namespace System::Windows;
 using namespace System::Threading;
 using namespace System::IO::Pipes;
-using namespace System::IO::Pipelines;
 using namespace System::Runtime::Loader;
 using namespace System::Reflection;
 using namespace System::Resources;

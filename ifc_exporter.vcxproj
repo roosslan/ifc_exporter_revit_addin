@@ -19,6 +19,10 @@
     <TargetFrameworkVersion>4.8</TargetFrameworkVersion>
     <ProjectName>ifc_exporter</ProjectName>
   </PropertyGroup>
+  <!-- Пути к зависимостям; переопределяются через /p:RevitApiDir=... -->
+  <PropertyGroup>
+    <RevitApiDir Condition="'$(RevitApiDir)' == ''">C:\Program Files\Autodesk\Revit 2023\</RevitApiDir>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
@@ -84,40 +88,34 @@
     <ClCompile Include="the_app.cc" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="RevitAPI">
+      <HintPath>$(RevitApiDir)RevitAPI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="RevitAPIUI">
+      <HintPath>$(RevitApiDir)RevitAPIUI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="AdWindows">
-      <HintPath>C:\Program Files\Autodesk\Revit 2023\AdWindows.dll</HintPath>
-      <CopyLocalSatelliteAssemblies>true</CopyLocalSatelliteAssemblies>
-      <Private>true</Private>
+      <HintPath>$(RevitApiDir)AdWindows.dll</HintPath>
+      <Private>false</Private>
     </Reference>
     <Reference Include="Autodesk.IFC.Export.UI">
-      <HintPath>C:\Program Files\Autodesk\Revit 2023\AddIns\IFCExporterUI\Autodesk.IFC.Export.UI.dll</HintPath>
+      <HintPath>$(RevitApiDir)AddIns\IFCExporterUI\Autodesk.IFC.Export.UI.dll</HintPath>
+      <Private>false</Private>
     </Reference>
     <Reference Include="log4net">
-      <HintPath>C:\Root\Packages\log4net.3.0.2\lib\net462\log4net.dll</HintPath>
+      <HintPath>$(SolutionDir)packages\log4net.3.0.2\lib\net462\log4net.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>C:\Root\Packages\Newtonsoft.Json130r3\Bin\net45\Newtonsoft.Json.dll</HintPath>
+      <HintPath>$(SolutionDir)packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
-    <Reference Include="RevitAPI">
-      <HintPath>C:\Program Files\Autodesk\Revit 2023\RevitAPI.dll</HintPath>
-    </Reference>
-    <Reference Include="RevitAPIUI">
-      <HintPath>C:\Program Files\Autodesk\Revit 2023\RevitAPIUI.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
-    <Reference Include="System.IO.Pipes">
-      <HintPath>C:\Root\Packages\System.IO.Pipes.4.3.0\ref\net46\System.IO.Pipes.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Linq" />
-    <Reference Include="System.Memory, Version=4.0.2.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51" />
-    <Reference Include="System.Text.Json">
-      <HintPath>C:\Root\Packages\System.Text.Json.dll</HintPath>
-    </Reference>
     <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />

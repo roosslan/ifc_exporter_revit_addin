@@ -56,7 +56,7 @@ namespace ifc_exporter {
                     /* TODO: What for?   Get the SiteLocation instance                  */
                     SiteLocation^ site_location = m_rvt_doc_->SiteLocation;
 
-                    auto output_file_name = sanitize_filename(m_rvt_doc_->Title + "_s" + row->site_ + "_q" + row->view_name + "_v" + export_view_n_id->view_name);
+                    auto output_file_name = file_names::sanitize(m_rvt_doc_->Title + "_s" + row->site_ + "_q" + row->view_name + "_v" + export_view_n_id->view_name);
                     if (row->output_f_name != "") {
                         output_file_name = row->output_f_name;
                     }

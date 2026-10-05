@@ -21,6 +21,11 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <ProjectName>ifc_exporter</ProjectName>
+    <EnableManagedPackageReferenceSupport>true</EnableManagedPackageReferenceSupport>
+  </PropertyGroup>
+  <!-- Пути к зависимостям; переопределяются через /p:RevitApiDir=... -->
+  <PropertyGroup>
+    <RevitApiDir Condition="'$(RevitApiDir)' == ''">C:\Program Files\Autodesk\Revit 2026\</RevitApiDir>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -89,47 +94,25 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="RevitAPI">
-      <HintPath>C:\Program Files\Autodesk\Revit 2026\RevitAPI.dll</HintPath>
+      <HintPath>$(RevitApiDir)RevitAPI.dll</HintPath>
+      <Private>false</Private>
     </Reference>
     <Reference Include="RevitAPIUI">
-      <HintPath>C:\Program Files\Autodesk\Revit 2026\RevitAPIUI.dll</HintPath>
+      <HintPath>$(RevitApiDir)RevitAPIUI.dll</HintPath>
+      <Private>false</Private>
     </Reference>
     <Reference Include="AdWindows">
-      <HintPath>C:\Program Files\Autodesk\Revit 2026\AdWindows.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>C:\Root\Packages\newtonsoft.json\11.0.2\lib\net6.0\Newtonsoft.Json.dll</HintPath>
+      <HintPath>$(RevitApiDir)AdWindows.dll</HintPath>
+      <Private>false</Private>
     </Reference>
     <Reference Include="Autodesk.IFC.Export.UI">
-      <HintPath>C:\Program Files\Autodesk\Revit 2026\AddIns\IFCExporterUI\Autodesk.IFC.Export.UI.dll</HintPath>
+      <HintPath>$(RevitApiDir)AddIns\IFCExporterUI\Autodesk.IFC.Export.UI.dll</HintPath>
+      <Private>false</Private>
     </Reference>
-    <Reference Include="System.Runtime">
-      <HintPath>C:\Program Files\dotnet\shared\Microsoft.NETCore.App\8.0.23\System.Runtime.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Configuration">
-      <HintPath>C:\Program Files\dotnet\shared\Microsoft.NETCore.App\8.0.23\System.Configuration.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Core">
-      <HintPath>C:\Program Files\dotnet\shared\Microsoft.NETCore.App\8.0.23\System.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="System.IO.Pipes">
-      <HintPath>C:\Program Files\dotnet\shared\Microsoft.NETCore.App\8.0.23\System.IO.Pipes.dll</HintPath>
-    </Reference>
-    <Reference Include="System.IO.Pipelines">
-      <HintPath>C:\Root\Packages\system.io.pipelines\8.0.0\lib\net8.0\System.IO.Pipelines.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Linq">
-      <HintPath>C:\Program Files\dotnet\shared\Microsoft.NETCore.App\8.0.23\System.Linq.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Memory">
-      <HintPath>C:\Program Files\dotnet\shared\Microsoft.NETCore.App\8.0.23\System.Memory.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Text.Json">
-      <HintPath>C:\Program Files\dotnet\shared\Microsoft.NETCore.App\8.0.23\System.Text.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="WindowsBase">
-      <HintPath>C:\Program Files\dotnet\shared\Microsoft.NETCore.App\8.0.23\WindowsBase.dll</HintPath>
-    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Сборки .NET подключаются через TargetFramework, явные ссылки на shared\Microsoft.NETCore.App не нужны -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="btn_availability.h" />
@@ -144,7 +127,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
-    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ifc_exporter.rc" />
