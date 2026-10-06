@@ -1,0 +1,167 @@
+name: CI
+
+on:
+  push:
+    branches: [trunk]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: powershell
+
+jobs:
+  build:
+    name: Сборка и тесты
+    # PR из форков на self-hosted runner не запускаются: чужой код не должен выполняться на машине сборки
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, windows, revit]
+    env:
+      OUT: ${{ github.workspace }}\out
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - uses: NuGet/setup-nuget@v2
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: sensitive_data.h
+        env:
+          SENSITIVE_DATA_H: ${{ secrets.SENSITIVE_DATA_H }}
+          IS_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          if ($env:SENSITIVE_DATA_H) {
+            $content = $env:SENSITIVE_DATA_H
+          }
+          elseif ($env:IS_RELEASE -eq 'true') {
+            throw 'Для релиза необходим секрет SENSITIVE_DATA_H с содержимым sensitive_data.h'
+          }
+          else {
+            Write-Host '::warning::Секрет SENSITIVE_DATA_H не задан, используется sensitive_data.example.h'
+            $content = [System.IO.File]::ReadAllText("$PWD\sensitive_data.example.h")
+          }
+          foreach ($dir in '.', 'net8') {
+            [System.IO.File]::WriteAllText("$PWD\$dir\sensitive_data.h", $content, (New-Object System.Text.UTF8Encoding($true)))
+          }
+
+      - name: Сборка для Revit 2023 (.NET Framework 4.8)
+        run: |
+          nuget restore ifc_exporter.sln -NonInteractive
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          msbuild ifc_exporter.sln -m -nologo -v:minimal -p:Configuration=Release -p:Platform=x64 "-p:OutDir=$env:OUT\build\revit2023\\"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
+      - name: Сборка для Revit 2026 (.NET 8)
+        run: |
+          msbuild net8\ifc_exporter.sln -restore -m -nologo -v:minimal -p:Configuration=Release -p:Platform=x64 "-p:OutDir=$env:OUT\build\revit2026\\"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
+      - name: Модульные тесты
+        run: |
+          dotnet test tests\ifc_exporter.tests\ifc_exporter.tests.csproj -c Release "-p:AddinDir=$env:OUT\build\revit2026\\" --logger "trx;LogFileName=tests.trx" --results-directory "$env:OUT\test-results"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
+      - name: Раскладка надстройки
+        run: |
+          .\tools\pack_addin.ps1 -BuildDir "$env:OUT\build\revit2023" -Destination "$env:OUT\Addins\2023"
+          .\tools\pack_addin.ps1 -BuildDir "$env:OUT\build\revit2026" -Destination "$env:OUT\Addins\2026"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: addins
+          path: out/Addins
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: out/test-results
+          if-no-files-found: ignore
+
+  release:
+    name: Релиз
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: [self-hosted, windows, revit]
+    permissions:
+      contents: write
+    env:
+      OUT: ${{ github.workspace }}\out
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout wix_msi_installer
+        uses: actions/checkout@v4
+        with:
+          repository: roosslan/wix_msi_installer
+          ref: ${{ vars.WIX_INSTALLER_REF || 'trunk' }}
+          path: installer/wix
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: addins
+          path: out/Addins
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Архивы надстройки
+        run: |
+          New-Item -ItemType Directory -Force -Path "$env:OUT\release" | Out-Null
+          foreach ($year in '2023', '2026') {
+            Compress-Archive -Path "$env:OUT\Addins\$year\*" -DestinationPath "$env:OUT\release\ifc_exporter_revit${year}_${{ github.ref_name }}.zip" -Force
+          }
+
+      - name: Подготовка директории Build для MSI
+        env:
+          MSI_BUILD_DIR: ${{ vars.MSI_BUILD_DIR }}
+        run: |
+          if (-not $env:MSI_BUILD_DIR -or -not (Test-Path $env:MSI_BUILD_DIR)) {
+            throw "Переменная MSI_BUILD_DIR не задана или директория не существует: '$env:MSI_BUILD_DIR'"
+          }
+          $build = "$PWD\installer\Build"
+          # Остальные компоненты (bgHelper, ifc_exporter.exe, dbchecker и т.д.) берутся из подготовленной директории
+          robocopy $env:MSI_BUILD_DIR $build /E /NFL /NDL /NJH /NJS /NP
+          if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
+          $global:LASTEXITCODE = 0
+          # Свежая сборка надстройки для Revit 2023 и 2026
+          if (Test-Path "$build\Addins") { Remove-Item "$build\Addins" -Recurse -Force }
+          Copy-Item -Path "$env:OUT\Addins" -Destination "$build\Addins" -Recurse
+          .\tools\license_to_rtf.ps1 -Destination "$PWD\installer\wix\license.rtf"
+
+      - name: Сборка MSI
+        run: |
+          $wix = "$PWD\installer\wix"
+          $consts = "$wix\consts.h"
+          $text = [System.IO.File]::ReadAllText($consts) -replace 'AUTO_BUILD_NUMBER', '${{ github.run_number }}'
+          [System.IO.File]::WriteAllText($consts, $text)
+
+          # before_build.bat в CI не используется: номер сборки подставлен выше
+          msbuild "$wix\wix_msi_installer.vcxproj" -nologo -v:minimal -p:Configuration=Release -p:Platform=Win32 -p:PreBuildEventUseInBuild=false
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
+          # Приложение с подсистемой Windows: без -Wait PowerShell не дожидается завершения
+          $proc = Start-Process -FilePath "$wix\Release\wix_msi_installer.exe" -WorkingDirectory $wix -Wait -PassThru -NoNewWindow
+          if ($proc.ExitCode -ne 0) { throw "wix_msi_installer.exe завершился с кодом $($proc.ExitCode)" }
+
+          $msi = Get-ChildItem -Path "$wix\wix" -Filter *.msi | Select-Object -First 1
+          if (-not $msi) { throw 'MSI не создан' }
+          Copy-Item $msi.FullName "$env:OUT\release\"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: out/release/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true

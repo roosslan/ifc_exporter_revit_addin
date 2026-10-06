@@ -1,0 +1,18 @@
+# Значения для сборки, которые не публикуются (шаблон — sensitive_data.example.h)
+sensitive_data.h
+sensitive_data.hpp
+
+# Результаты сборки
+x64/
+Debug/
+Release/
+bin/
+obj/
+out/
+packages/
+*.user
+*.aps
+.vs/
+
+# Сгенерированные файлы
+license.rtf

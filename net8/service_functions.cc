@@ -213,7 +213,7 @@ namespace ifc_exporter {
         return records_to_export;
     }
 
-    bool ifc_exporter::is_reserved_name(const string filename) {
+    bool file_names::is_reserved_name(const string filename) {
         /* Windows reserved filenames (without extension) */
         array<string>^ reserved_names = {
             "CON", "PRN", "AUX", "NUL",
@@ -231,7 +231,7 @@ namespace ifc_exporter {
         return false;
     }
 
-    string ifc_exporter::sanitize_filename(const string filename) {
+    string file_names::sanitize(const string filename) {
         if (String::IsNullOrEmpty(filename))
             return String::Empty;
 

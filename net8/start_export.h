@@ -6,8 +6,12 @@
 #include "sensitive_data.h"
 
 namespace ifc_exporter {
-    bool is_reserved_name(string filename);
-    string sanitize_filename(string filename);
+    /* Подготовка имён выходных файлов. public — для модульных тестов */
+    public ref class file_names abstract sealed {
+    public:
+        static bool is_reserved_name(string filename);
+        static string sanitize(string filename);
+    };
 
     ref class export_to_file_format {
     public:
