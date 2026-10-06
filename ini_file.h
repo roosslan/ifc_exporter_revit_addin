@@ -3,8 +3,8 @@
 #include "stdafx.h"
 
 namespace ifc_exporter {
-    /* Разбор INI-файла в UTF-8 (с BOM или без). Заменяет GetPrivateProfileString, который UTF-8 не поддерживает */
-    ref class ini_simple sealed {
+    /* Разбор INI-файла в UTF-8 (с BOM или без). Заменяет GetPrivateProfileString, который UTF-8 не поддерживает. public — для модульных тестов */
+    public ref class ini_simple sealed {
         string ext_path_;
         List<string>^ read_lines();
         void write_lines(List<string>^ lines);
